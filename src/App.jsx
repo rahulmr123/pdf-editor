@@ -21,6 +21,7 @@ export default function App() {
   const [imageMode, setImageMode] = useState(false)
   const [selectedRegion, setSelectedRegion] = useState(null)
   const [viewTheme, setViewTheme] = useState('normal')
+  const [selectMode, setSelectMode] = useState(false)
   const replaceTarget = useRef(null)
   const replaceInputRef = useRef(null)
 
@@ -141,6 +142,88 @@ export default function App() {
     }
     setObjects((prev) => [...prev, obj])
     setSelectedId(obj.id)
+  }
+
+  function toggleSelectMode() {
+    setSelectMode((s) => !s)
+    setSelectedId(null)
+    setSelectedRegion(null)
+    setImageMode(false)
+  }
+
+  // Drag-select a region of original text -> grab every run inside it as one
+  // editable, multi-line block (e.g. a full address), and cover the original.
+  function areaSelect(pageIndex, rect) {
+    const page = pages.find((p) => p.pageIndex === pageIndex)
+    setSelectMode(false)
+    if (!page) return
+
+    const items = (page.textItems || []).filter(
+      (it) =>
+        !(
+          it.x > rect.x + rect.w ||
+          it.x + it.width < rect.x ||
+          it.y > rect.y + rect.h ||
+          it.y + it.height < rect.y
+        ),
+    )
+    if (!items.length) return
+
+    // group runs into lines by vertical position, then order each line by x
+    const sorted = [...items].sort((a, b) => a.y - b.y || a.x - b.x)
+    const lines = []
+    for (const it of sorted) {
+      const last = lines[lines.length - 1]
+      if (last && Math.abs(it.y - last.y) < it.height * 0.6) {
+        last.items.push(it)
+        last.y = Math.min(last.y, it.y)
+      } else {
+        lines.push({ y: it.y, items: [it] })
+      }
+    }
+    const text = lines
+      .map((l) =>
+        l.items
+          .sort((a, b) => a.x - b.x)
+          .map((i) => i.str)
+          .join(' '),
+      )
+      .join('\n')
+
+    const minX = Math.min(...items.map((i) => i.x))
+    const minY = Math.min(...items.map((i) => i.y))
+    const maxX = Math.max(...items.map((i) => i.x + i.width))
+    const maxY = Math.max(...items.map((i) => i.y + i.height))
+    const fontSize = sorted[0].fontSize
+
+    snapshot()
+    const pad = 2
+    const whiteout = {
+      id: newId(),
+      type: 'whiteout',
+      pageIndex,
+      x: minX - pad,
+      y: minY - pad,
+      w: maxX - minX + pad * 2,
+      h: maxY - minY + pad * 2,
+      color: '#ffffff',
+    }
+    const textObj = {
+      id: newId(),
+      type: 'text',
+      pageIndex,
+      x: minX,
+      y: minY,
+      text,
+      fontSize,
+      color: '#111111',
+      bold: false,
+      italic: false,
+      bgColor: 'none',
+    }
+    setObjects((prev) => [...prev, whiteout, textObj])
+    setSelectedId(textObj.id)
+    setSelectedRegion(null)
   }
 
   function addHighlight() {
@@ -289,6 +372,7 @@ export default function App() {
     setFileName('')
     setImageMode(false)
     setSelectedRegion(null)
+    setSelectMode(false)
     past.current = []
     future.current = []
   }
@@ -323,6 +407,8 @@ export default function App() {
         onImageFile={handleImageFile}
         onAddSignature={() => setShowSig(true)}
         onAddHighlight={addHighlight}
+        selectMode={selectMode}
+        onToggleSelectMode={toggleSelectMode}
         imageMode={imageMode}
         onToggleImageMode={toggleImageMode}
         viewTheme={viewTheme}
@@ -355,6 +441,8 @@ export default function App() {
             onSelectRegion={selectRegion}
             onRemoveRegion={removeRegion}
             onReplaceRegion={replaceRegion}
+            selectMode={selectMode}
+            onAreaSelect={areaSelect}
           />
         ))}
       </div>

@@ -7,6 +7,8 @@ export default function Toolbar({
   onImageFile,
   onAddSignature,
   onAddHighlight,
+  selectMode,
+  onToggleSelectMode,
   imageMode,
   onToggleImageMode,
   viewTheme,
@@ -32,6 +34,13 @@ export default function Toolbar({
         <button className="btn" onClick={onAddSignature}>✎ Sign</button>
         <button className="btn" onClick={onAddHighlight}>🖍 Highlight</button>
         <button
+          className={`btn ${selectMode ? 'active' : ''}`}
+          onClick={onToggleSelectMode}
+          title="Drag a box around multiple lines (e.g. an address) to edit them as one block"
+        >
+          ▦ Select text
+        </button>
+        <button
           className={`btn ${imageMode ? 'active' : ''}`}
           onClick={onToggleImageMode}
           title="Highlight all images on the page"
@@ -53,9 +62,11 @@ export default function Toolbar({
         <button className="btn" onClick={onUndo} disabled={!canUndo} title="Undo (⌘Z)">↶</button>
         <button className="btn" onClick={onRedo} disabled={!canRedo} title="Redo (⇧⌘Z)">↷</button>
         <span className="hint">
-          {imageMode
-            ? 'All images highlighted — click one to remove or replace'
-            : 'Tip: click any text or image on the page to edit it'}
+          {selectMode
+            ? 'Drag a box around the lines you want (e.g. an address) to edit them together'
+            : imageMode
+              ? 'All images highlighted — click one to remove or replace'
+              : 'Tip: click any text or image on the page to edit it'}
         </span>
       </div>
 

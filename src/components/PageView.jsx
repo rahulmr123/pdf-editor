@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import TextBox from './TextBox.jsx'
 import ImageBox from './ImageBox.jsx'
 import HighlightBox from './HighlightBox.jsx'
@@ -21,24 +22,61 @@ export default function PageView({
   onSelectRegion,
   onRemoveRegion,
   onReplaceRegion,
+  selectMode,
+  onAreaSelect,
 }) {
   const regionOnThisPage =
     selectedRegion && selectedRegion.pageIndex === page.pageIndex ? selectedRegion : null
+
+  const [marquee, setMarquee] = useState(null)
+  const start = useRef(null)
+
+  function onPageDown(e) {
+    onSelect(null)
+    onSelectRegion(null)
+    if (!selectMode) return
+    const r = e.currentTarget.getBoundingClientRect()
+    start.current = { el: e.currentTarget, x: e.clientX - r.left, y: e.clientY - r.top }
+    setMarquee({ x: start.current.x, y: start.current.y, w: 0, h: 0 })
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+  }
+  function onPageMove(e) {
+    if (!selectMode || !start.current) return
+    const r = start.current.el.getBoundingClientRect()
+    const cx = e.clientX - r.left
+    const cy = e.clientY - r.top
+    const s = start.current
+    setMarquee({ x: Math.min(s.x, cx), y: Math.min(s.y, cy), w: Math.abs(cx - s.x), h: Math.abs(cy - s.y) })
+  }
+  function onPageUp() {
+    if (!selectMode || !start.current) return
+    const m = marquee
+    start.current = null
+    setMarquee(null)
+    if (m && m.w > 6 && m.h > 6) onAreaSelect(page.pageIndex, m)
+  }
   return (
     <div className="page-wrap">
       <div
-        className="page"
+        className={`page ${selectMode ? 'select-mode' : ''}`}
         style={{ width: page.width, height: page.height }}
-        onPointerDown={() => {
-          onSelect(null)
-          onSelectRegion(null)
-        }}
+        onPointerDown={onPageDown}
+        onPointerMove={onPageMove}
+        onPointerUp={onPageUp}
       >
         <img className="page-bg" src={page.dataUrl} draggable={false} alt="" />
 
+        {marquee && (
+          <div
+            className="marquee"
+            style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }}
+          />
+        )}
+
         {/* Detected images: click to remove/replace (always clickable, like text).
             'show-all' outlines every image when the Images toggle is on. */}
-        {page.imageRegions?.map((rg, i) => {
+        {!selectMode &&
+          page.imageRegions?.map((rg, i) => {
           const on = selectedRegion?.pageIndex === page.pageIndex && selectedRegion.index === i
           return (
             <div
@@ -74,7 +112,8 @@ export default function PageView({
         )}
 
         {/* Clickable existing-text layer (rendered after images so text wins overlap) */}
-        {page.textItems?.map((item, i) => (
+        {!selectMode &&
+          page.textItems?.map((item, i) => (
           <span
             key={`t${i}`}
             className="text-hit"

@@ -184,6 +184,17 @@ body {
 }
 .page-bg { display: block; width: 100%; height: 100%; user-select: none; }
 .page-label { font-size: 12px; color: var(--muted); }
+.page.select-mode { cursor: crosshair; }
+
+/* Drag-to-select marquee */
+.marquee {
+  position: absolute;
+  z-index: 30;
+  border: 1.5px solid var(--accent);
+  background: var(--accent-tint);
+  border-radius: 2px;
+  pointer-events: none;
+}
 
 /* Clickable existing-text hit targets */
 .text-hit {
