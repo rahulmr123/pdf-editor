@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { DOC_FONTS } from '../lib/docfonts.js'
 
 // Top toolbar: grouped into Insert / Modes / History on the left, and
 // view + file actions on the right. A slim contextual bar appears below
@@ -14,6 +15,8 @@ export default function Toolbar({
   onToggleImageMode,
   viewTheme,
   onViewTheme,
+  docFont,
+  onApplyDocFont,
   onExport,
   onReset,
   onUndo,
@@ -70,6 +73,20 @@ export default function Toolbar({
         </div>
 
         <div className="right">
+          <span className="ctl-label">Font</span>
+          <select
+            className="theme-select"
+            value={docFont}
+            onChange={(e) => onApplyDocFont(e.target.value)}
+            title="Restyle the entire document in this font"
+          >
+            <option value="">Original</option>
+            {Object.entries(DOC_FONTS).map(([k, f]) => (
+              <option key={k} value={k}>
+                {f.label}
+              </option>
+            ))}
+          </select>
           <span className="ctl-label">View</span>
           <select
             className="theme-select"

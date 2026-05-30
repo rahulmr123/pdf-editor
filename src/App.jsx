@@ -5,6 +5,7 @@ import UploadZone from './components/UploadZone.jsx'
 import Toolbar from './components/Toolbar.jsx'
 import PageView from './components/PageView.jsx'
 import SignaturePad from './components/SignaturePad.jsx'
+import { DOC_FONTS, docFontCss, registerDocFonts } from './lib/docfonts.js'
 
 let idSeq = 1
 const newId = () => `obj_${idSeq++}`
@@ -22,6 +23,7 @@ export default function App() {
   const [selectedRegion, setSelectedRegion] = useState(null)
   const [viewTheme, setViewTheme] = useState('normal')
   const [selectMode, setSelectMode] = useState(false)
+  const [docFont, setDocFont] = useState('') // applied document-wide font
   const replaceTarget = useRef(null)
   const replaceInputRef = useRef(null)
   const pendingEdit = useRef(null) // a click-to-edit that's reverted if left unchanged
@@ -220,6 +222,50 @@ export default function App() {
     setSelectedId(null)
     setSelectedRegion(null)
     setImageMode(false)
+  }
+
+  // Restyle the WHOLE document in a chosen font: cover every original text run
+  // and redraw it in the bundled font (shrunk to fit so tables stay tidy).
+  async function applyDocumentFont(key) {
+    setSelectedId(null)
+    setSelectedRegion(null)
+    if (!key) {
+      snapshot()
+      setObjects((prev) => prev.filter((o) => !o.docRestyle))
+      setDocFont('')
+      return
+    }
+    registerDocFonts()
+    const family = docFontCss(key)
+    const cat = DOC_FONTS[key]?.category || 'sans'
+    try {
+      await document.fonts.load(`16px ${family}`)
+      await document.fonts.load(`700 16px ${family}`)
+    } catch {}
+    const ctx = document.createElement('canvas').getContext('2d')
+    const next = []
+    for (const page of pages) {
+      for (const it of page.textItems || []) {
+        next.push({
+          id: newId(), type: 'whiteout', pageIndex: page.pageIndex,
+          x: it.x - 1, y: it.y - 1, w: it.width + 2, h: it.height + 2,
+          color: '#ffffff', docRestyle: true,
+        })
+        let size = it.fontSize
+        ctx.font = `${it.fontBold ? '700' : '400'} ${size}px ${family}`
+        const w = ctx.measureText(it.str).width
+        if (w > it.width && w > 0) size = Math.max(4, size * (it.width / w))
+        next.push({
+          id: newId(), type: 'text', pageIndex: page.pageIndex,
+          x: it.x, y: it.y, text: it.str, fontSize: size,
+          color: '#111111', bold: !!it.fontBold, italic: false, bgColor: 'none',
+          font: cat, docFontKey: key, docFontFamily: family, docRestyle: true,
+        })
+      }
+    }
+    snapshot()
+    setObjects((prev) => [...prev.filter((o) => !o.docRestyle), ...next])
+    setDocFont(key)
   }
 
   // Drag-select a region of original text -> grab every run inside it as one
@@ -548,6 +594,7 @@ export default function App() {
     setImageMode(false)
     setSelectedRegion(null)
     setSelectMode(false)
+    setDocFont('')
     past.current = []
     future.current = []
   }
@@ -572,6 +619,11 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [objects, selectedId])
 
+  // preload bundled document fonts
+  useEffect(() => {
+    registerDocFonts()
+  }, [])
+
   if (!pages.length) return <UploadZone onFile={handleFile} error={error} />
 
   return (
@@ -588,6 +640,8 @@ export default function App() {
         onToggleImageMode={toggleImageMode}
         viewTheme={viewTheme}
         onViewTheme={setViewTheme}
+        docFont={docFont}
+        onApplyDocFont={applyDocumentFont}
         onChange={updateObject}
         onExport={handleExport}
         onReset={reset}

@@ -1,5 +1,6 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
+import { getDocFontBytes } from './docfonts.js'
 
 function hexToRgb(hex) {
   const m = hex.replace('#', '')
@@ -24,6 +25,20 @@ export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {})
       customCache[ref] = null
     }
     return customCache[ref]
+  }
+
+  // bundled document fonts (the "Document font" feature)
+  const docCache = {}
+  const docFont = async (key, bold) => {
+    const ck = `${key}:${bold ? 1 : 0}`
+    if (ck in docCache) return docCache[ck]
+    try {
+      const bytes = await getDocFontBytes(key, bold)
+      docCache[ck] = bytes ? await pdfDoc.embedFont(bytes, { subset: true }) : null
+    } catch {
+      docCache[ck] = null
+    }
+    return docCache[ck]
   }
 
   // Match the original font family: serif -> Times, mono -> Courier, else Helvetica.
@@ -114,7 +129,10 @@ export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {})
     const lineHeight = size * 1.2
     const [r, g, b] = hexToRgb(obj.color)
     const stdFont = fontFor(obj)
-    const font = (await customFont(obj.fontRef)) || stdFont
+    const font =
+      (obj.docFontKey && (await docFont(obj.docFontKey, obj.bold))) ||
+      (await customFont(obj.fontRef)) ||
+      stdFont
     const lines = obj.text.split('\n')
 
     const widthOf = (f, line) => {
