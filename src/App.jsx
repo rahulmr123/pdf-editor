@@ -234,6 +234,12 @@ export default function App() {
     setObjects((prev) => [...prev, whiteout, textObj])
     setSelectedId(textObj.id)
     setSelectedRegion(null)
+    pendingEdit.current = {
+      textId: textObj.id,
+      whiteoutId: whiteout.id,
+      originalText: text,
+      originalFontSize: fontSize,
+    }
   }
 
   function addHighlight() {
