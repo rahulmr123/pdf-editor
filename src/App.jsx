@@ -233,7 +233,6 @@ export default function App() {
             onSelect={setSelectedId}
             onChange={updateObject}
             onDelete={deleteObject}
-            onAddText={addText}
             onEditExisting={editExisting}
             onDragStart={snapshot}
             onEditStart={snapshot}

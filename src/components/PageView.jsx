@@ -11,7 +11,6 @@ export default function PageView({
   onSelect,
   onChange,
   onDelete,
-  onAddText,
   onEditExisting,
   onDragStart,
   onEditStart,
@@ -23,11 +22,6 @@ export default function PageView({
         className="page"
         style={{ width: page.width, height: page.height }}
         onPointerDown={() => onSelect(null)}
-        onDoubleClick={(e) => {
-          // double-click empty space => drop a new text box there
-          const rect = e.currentTarget.getBoundingClientRect()
-          onAddText(page.pageIndex, e.clientX - rect.left, e.clientY - rect.top)
-        }}
       >
         <img className="page-bg" src={page.dataUrl} draggable={false} alt="" />
 
