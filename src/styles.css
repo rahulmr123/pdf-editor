@@ -475,6 +475,19 @@ body {
 }
 .tp-colors { gap: 8px; }
 .tp-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.tp-font {
+  flex: 1;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
 .tp-nofill { margin-left: auto; font-size: 15px; }
 
 /* ---------- Image / signature objects ---------- */

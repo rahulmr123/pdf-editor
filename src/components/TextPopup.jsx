@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 const POPUP_W = 264
-const POPUP_H = 162
+const POPUP_H = 202
 
 const hasFill = (o) => o.bgColor && o.bgColor !== 'none'
 
@@ -64,6 +64,20 @@ export default function TextPopup({ obj, pageWidth, pageHeight, onChange, onDele
         <button className="tp-btn tp-del" onClick={() => onDelete(obj.id)} title="Delete">
           ✕
         </button>
+      </div>
+
+      <div className="tp-row">
+        <span className="tp-label">Font</span>
+        <select
+          className="tp-font"
+          value={obj.font || 'sans'}
+          onChange={(e) => onChange(obj.id, { font: e.target.value })}
+          title="Font family for this text"
+        >
+          <option value="sans">Sans-serif (Helvetica)</option>
+          <option value="serif">Serif (Times)</option>
+          <option value="mono">Monospace (Courier)</option>
+        </select>
       </div>
 
       <div className="tp-row tp-colors">
