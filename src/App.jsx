@@ -4,6 +4,7 @@ import { exportPdf } from './lib/exportPdf.js'
 import UploadZone from './components/UploadZone.jsx'
 import Toolbar from './components/Toolbar.jsx'
 import PageView from './components/PageView.jsx'
+import SignaturePad from './components/SignaturePad.jsx'
 
 let idSeq = 1
 const newId = () => `obj_${idSeq++}`
@@ -16,6 +17,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [showSig, setShowSig] = useState(false)
 
   // Undo / redo history of the objects array.
   const past = useRef([])
@@ -114,6 +116,34 @@ export default function App() {
     setSelectedId(text.id)
   }
 
+  // Place an image/signature, scaled to a sensible default width, on page 1.
+  function placeImage({ src, w, h }, maxW = 260) {
+    snapshot()
+    const scale = Math.min(1, maxW / w)
+    const obj = {
+      id: newId(),
+      type: 'image',
+      pageIndex: 0,
+      x: 80,
+      y: 120,
+      w: w * scale,
+      h: h * scale,
+      src,
+    }
+    setObjects((prev) => [...prev, obj])
+    setSelectedId(obj.id)
+  }
+
+  function handleImageFile(file) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => placeImage({ src: reader.result, w: img.naturalWidth, h: img.naturalHeight })
+      img.src = reader.result
+    }
+    reader.readAsDataURL(file)
+  }
+
   function updateObject(id, patch) {
     setObjects((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)))
   }
@@ -180,6 +210,8 @@ export default function App() {
       <Toolbar
         selected={selected}
         onAddText={() => addText(0, 60, 60)}
+        onImageFile={handleImageFile}
+        onAddSignature={() => setShowSig(true)}
         onChange={updateObject}
         onExport={handleExport}
         onReset={reset}
@@ -203,9 +235,20 @@ export default function App() {
             onEditExisting={editExisting}
             onDragStart={snapshot}
             onEditStart={snapshot}
+            onGestureStart={snapshot}
           />
         ))}
       </div>
+
+      {showSig && (
+        <SignaturePad
+          onClose={() => setShowSig(false)}
+          onConfirm={(result) => {
+            setShowSig(false)
+            placeImage(result, 240)
+          }}
+        />
+      )}
     </div>
   )
 }

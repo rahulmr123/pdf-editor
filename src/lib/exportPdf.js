@@ -38,6 +38,25 @@ export async function exportPdf(originalArrayBuffer, pages, objects) {
       continue
     }
 
+    if (obj.type === 'image') {
+      try {
+        const img = obj.src.startsWith('data:image/png')
+          ? await pdfDoc.embedPng(obj.src)
+          : await pdfDoc.embedJpg(obj.src)
+        const w = obj.w / scale
+        const h = obj.h / scale
+        page.drawImage(img, {
+          x: obj.x / scale,
+          y: pdfPageHeight - obj.y / scale - h,
+          width: w,
+          height: h,
+        })
+      } catch (e) {
+        console.error('Could not embed image', e)
+      }
+      continue
+    }
+
     if (obj.type !== 'text' || !obj.text.trim()) continue
 
     // editor coords are screen px from the page's top-left.

@@ -1,4 +1,5 @@
 import TextBox from './TextBox.jsx'
+import ImageBox from './ImageBox.jsx'
 
 // One PDF page: the rendered raster as a locked background, a clickable text
 // layer for editing existing text in place, and the editable object overlay.
@@ -13,6 +14,7 @@ export default function PageView({
   onEditExisting,
   onDragStart,
   onEditStart,
+  onGestureStart,
 }) {
   return (
     <div className="page-wrap">
@@ -51,6 +53,21 @@ export default function PageView({
               key={o.id}
               className="whiteout"
               style={{ left: o.x, top: o.y, width: o.w, height: o.h, background: o.color }}
+            />
+          ))}
+
+        {/* Image & signature objects */}
+        {objects
+          .filter((o) => o.type === 'image')
+          .map((obj) => (
+            <ImageBox
+              key={obj.id}
+              obj={obj}
+              selected={obj.id === selectedId}
+              onSelect={onSelect}
+              onChange={onChange}
+              onDelete={onDelete}
+              onGestureStart={onGestureStart}
             />
           ))}
 

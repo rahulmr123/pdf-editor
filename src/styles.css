@@ -124,8 +124,9 @@ body {
   margin-left: 6px;
   vertical-align: middle;
 }
-.tools { display: flex; align-items: center; gap: 12px; }
+.tools { display: flex; align-items: center; gap: 10px; }
 .actions { margin-left: auto; display: flex; gap: 10px; }
+.sep-v { width: 1px; height: 24px; background: var(--line); }
 
 .inspector { display: flex; gap: 14px; align-items: center; }
 .inspector label {
@@ -237,3 +238,108 @@ body {
   display: grid;
   place-items: center;
 }
+
+/* ---------- Image / signature objects ---------- */
+.imagebox {
+  position: absolute;
+  z-index: 3;
+  cursor: move;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  touch-action: none;
+}
+.imagebox img { width: 100%; height: 100%; display: block; pointer-events: none; }
+.imagebox.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.imagebox .handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 1.5px solid var(--accent);
+  border-radius: 3px;
+}
+.imagebox .handle.tl { top: -7px; left: -7px; cursor: nwse-resize; }
+.imagebox .handle.tr { top: -7px; right: -7px; cursor: nesw-resize; }
+.imagebox .handle.bl { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.imagebox .handle.br { bottom: -7px; right: -7px; cursor: nwse-resize; }
+.imagebox-del {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: var(--danger);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  z-index: 4;
+}
+
+/* ---------- Signature modal ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 28, 20, .45);
+  backdrop-filter: blur(3px);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+}
+.modal {
+  width: min(580px, 92vw);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 30px 80px rgba(60, 35, 20, .3);
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.modal-head h3 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; }
+.modal-x {
+  border: none; background: transparent; color: var(--muted);
+  font-size: 24px; cursor: pointer; line-height: 1;
+}
+.tabs { display: flex; gap: 6px; background: var(--surface); padding: 4px; border-radius: 12px; width: max-content; margin-bottom: 16px; }
+.tabs button {
+  border: none; background: transparent; color: var(--muted);
+  padding: 7px 18px; border-radius: 9px; font-weight: 600; font-size: 14px; cursor: pointer;
+  font-family: inherit;
+}
+.tabs button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+.sig-draw { position: relative; }
+.sig-draw canvas {
+  width: 100%;
+  height: 200px;
+  background: #fffdf9;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  touch-action: none;
+  cursor: crosshair;
+}
+.sig-baseline {
+  position: absolute; bottom: 34px; left: 24px; right: 24px;
+  border-top: 1px dashed #d9c4b2; text-align: center; color: var(--muted);
+  font-size: 12px; padding-top: 4px;
+}
+
+.sig-type input {
+  width: 100%; padding: 12px 14px; font-size: 16px;
+  border: 1px solid var(--line); border-radius: 12px; background: #fffdf9; color: var(--ink);
+  font-family: inherit;
+}
+.sig-fonts { display: flex; gap: 12px; margin-top: 14px; }
+.sig-font {
+  flex: 1; min-width: 0; padding: 14px; font-size: 30px;
+  border: 1px solid var(--line); border-radius: 12px; background: #fffdf9; color: var(--ink);
+  cursor: pointer; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.sig-font.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.modal-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.modal-foot .btn.ghost { margin-right: auto; }
