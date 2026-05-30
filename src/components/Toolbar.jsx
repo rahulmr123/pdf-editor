@@ -1,8 +1,9 @@
 import { useRef } from 'react'
 
-// Top toolbar: add text/image/signature, tweak selection, undo/redo, export.
+// Top toolbar: grouped into Insert / Modes / History on the left, and
+// view + file actions on the right. A slim contextual bar appears below
+// only when a special mode (Select text / Show images) is active.
 export default function Toolbar({
-  selected,
   onAddText,
   onImageFile,
   onAddSignature,
@@ -13,7 +14,6 @@ export default function Toolbar({
   onToggleImageMode,
   viewTheme,
   onViewTheme,
-  onChange,
   onExport,
   onReset,
   onUndo,
@@ -25,68 +25,77 @@ export default function Toolbar({
   const fileRef = useRef(null)
 
   return (
-    <div className="toolbar">
-      <div className="brand">◷ pdfly <span>prototype</span></div>
+    <>
+      <div className="toolbar">
+        <div className="brand">◷ pdfly</div>
 
-      <div className="tools">
-        <button className="btn" onClick={() => onAddText()}>+ Text</button>
-        <button className="btn" onClick={() => fileRef.current?.click()}>+ Image</button>
-        <button className="btn" onClick={onAddSignature}>✎ Sign</button>
-        <button className="btn" onClick={onAddHighlight}>🖍 Highlight</button>
-        <button
-          className={`btn ${selectMode ? 'active' : ''}`}
-          onClick={onToggleSelectMode}
-          title="Drag a box around multiple lines (e.g. an address) to edit them as one block"
-        >
-          ▦ Select text
-        </button>
-        <button
-          className={`btn ${imageMode ? 'active' : ''}`}
-          onClick={onToggleImageMode}
-          title="Highlight all images on the page"
-        >
-          🖼 Images
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={(e) => {
-            const f = e.target.files?.[0]
-            if (f) onImageFile(f)
-            e.target.value = ''
-          }}
-        />
-        <span className="sep-v" />
-        <button className="btn" onClick={onUndo} disabled={!canUndo} title="Undo (⌘Z)">↶</button>
-        <button className="btn" onClick={onRedo} disabled={!canRedo} title="Redo (⇧⌘Z)">↷</button>
-        <span className="hint">
+        <div className="tool-group">
+          <button className="tbtn" onClick={() => onAddText()}>Text</button>
+          <button className="tbtn" onClick={() => fileRef.current?.click()}>Image</button>
+          <button className="tbtn" onClick={onAddSignature}>Sign</button>
+          <button className="tbtn" onClick={onAddHighlight}>Highlight</button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) onImageFile(f)
+              e.target.value = ''
+            }}
+          />
+        </div>
+
+        <div className="tool-group">
+          <button
+            className={`tbtn ${selectMode ? 'active' : ''}`}
+            onClick={onToggleSelectMode}
+            title="Drag a box around multiple lines (e.g. an address) to edit them as one block"
+          >
+            Select
+          </button>
+          <button
+            className={`tbtn ${imageMode ? 'active' : ''}`}
+            onClick={onToggleImageMode}
+            title="Highlight all images on the page"
+          >
+            Show images
+          </button>
+        </div>
+
+        <div className="tool-group">
+          <button className="tbtn icon" onClick={onUndo} disabled={!canUndo} title="Undo (⌘Z)">↶</button>
+          <button className="tbtn icon" onClick={onRedo} disabled={!canRedo} title="Redo (⇧⌘Z)">↷</button>
+        </div>
+
+        <div className="right">
+          <span className="ctl-label">View</span>
+          <select
+            className="theme-select"
+            value={viewTheme}
+            onChange={(e) => onViewTheme(e.target.value)}
+            title="Reading theme (changes how pages look on screen)"
+          >
+            <option value="normal">Normal</option>
+            <option value="dark">Dark</option>
+            <option value="sepia">Sepia</option>
+            <option value="contrast">High contrast</option>
+          </select>
+          <button className="btn ghost" onClick={onReset}>New file</button>
+          <button className="btn primary" onClick={onExport} disabled={busy}>
+            {busy ? 'Exporting…' : '⬇ Export'}
+          </button>
+        </div>
+      </div>
+
+      {(selectMode || imageMode) && (
+        <div className="mode-bar">
           {selectMode
-            ? 'Drag a box around the lines you want (e.g. an address) to edit them together'
-            : imageMode
-              ? 'All images highlighted — click one to remove or replace'
-              : 'Tip: click any text or image on the page to edit it'}
-        </span>
-      </div>
-
-      <div className="actions">
-        <select
-          className="theme-select"
-          value={viewTheme}
-          onChange={(e) => onViewTheme(e.target.value)}
-          title="Reading theme (changes how pages look on screen)"
-        >
-          <option value="normal">◐ View: Normal</option>
-          <option value="dark">🌙 View: Dark</option>
-          <option value="sepia">📜 View: Sepia</option>
-          <option value="contrast">◼ View: High contrast</option>
-        </select>
-        <button className="btn ghost" onClick={onReset}>New file</button>
-        <button className="btn primary" onClick={onExport} disabled={busy}>
-          {busy ? 'Exporting…' : '⬇ Export PDF'}
-        </button>
-      </div>
-    </div>
+            ? '✦ Select mode — drag a box around the lines you want (e.g. an address) to edit them together'
+            : '✦ Showing all images — click one to remove or replace it'}
+        </div>
+      )}
+    </>
   )
 }
