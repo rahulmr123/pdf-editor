@@ -74,12 +74,45 @@ function classifyStyle(name) {
   }
 }
 
+// Turn a PDF font name (e.g. "ABCDEF+TimesNewRomanPSMT-Bold") into a CSS family
+// the browser can actually render, so standard fonts match on screen.
+const KNOWN_FONTS = {
+  arial: 'Arial',
+  helvetica: 'Helvetica',
+  helveticaneue: '"Helvetica Neue"',
+  times: '"Times New Roman"',
+  timesnewroman: '"Times New Roman"',
+  georgia: 'Georgia',
+  verdana: 'Verdana',
+  courier: '"Courier New"',
+  couriernew: '"Courier New"',
+  calibri: 'Calibri',
+  cambria: 'Cambria',
+  tahoma: 'Tahoma',
+  garamond: 'Garamond',
+  palatino: 'Palatino',
+  segoeui: '"Segoe UI"',
+}
+function cssNameFromFont(raw) {
+  const base = (raw || '')
+    .replace(/^[A-Z]{6}\+/, '') // strip subset prefix
+    .replace(/[-_,].*$/, '') // strip style suffix (e.g. -Bold)
+    .replace(/(MT|PSMT|PS)$/, '')
+    .trim()
+  if (!base) return ''
+  const key = base.toLowerCase().replace(/\s+/g, '')
+  return KNOWN_FONTS[key] || `"${base}"`
+}
+
 // Render every page of a PDF to a raster image we can show as a locked background.
 // We keep both the displayed pixel size (scaled) and the native PDF size (points)
 // so we can map editor coordinates back to PDF coordinates on export.
 export async function renderPdf(arrayBuffer, targetWidth = 820) {
   // pdf.js detaches the buffer it receives — hand it a copy so the caller keeps theirs.
-  const doc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise
+  const doc = await pdfjsLib.getDocument({
+    data: arrayBuffer.slice(0),
+    fontExtraProperties: true, // keep embedded font bytes so we can reuse them
+  }).promise
   const pages = []
   const fonts = {} // loadedName -> { data, mimetype } of embedded fonts (for exact reuse)
 
@@ -107,18 +140,23 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
       let name = ''
       let fontRef = null
       try {
-        if (page.commonObjs.has(fontName)) {
-          const f = page.commonObjs.get(fontName)
-          name = f?.name || f?.fallbackName || ''
+        const f = page.commonObjs.has(fontName) ? page.commonObjs.get(fontName) : null
+        if (f) {
+          name = f.name || f.fallbackName || ''
           // capture the actual embedded font program so edits can reuse it
-          if (f?.data && f.data.length && f.loadedName) {
+          if (f.data && f.data.length && f.loadedName) {
             fontRef = f.loadedName
             if (!fonts[fontRef]) fonts[fontRef] = { data: f.data, mimetype: f.mimetype || 'font/opentype' }
           }
         }
       } catch {}
       if (!name) name = textContent.styles?.[fontName]?.fontFamily || ''
-      const info = { fontCategory: classifyFamily(name), ...classifyStyle(name), fontRef }
+      const info = {
+        fontCategory: classifyFamily(name),
+        ...classifyStyle(name),
+        fontRef,
+        fontName: cssNameFromFont(name),
+      }
       fontInfoCache[fontName] = info
       return info
     }
@@ -141,6 +179,7 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
         fontBold: info.bold,
         fontItalic: info.italic,
         fontRef: info.fontRef,
+        fontName: info.fontName,
       })
     }
 

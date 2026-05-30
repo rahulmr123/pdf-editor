@@ -114,6 +114,7 @@ export default function App() {
       font: 'sans',
       fontRef: null,
       origFontRef: null,
+      fontName: '',
     }
     setObjects((prev) => [...prev, obj])
     setSelectedId(obj.id)
@@ -180,6 +181,7 @@ export default function App() {
       font: item.fontCategory || 'sans',
       fontRef: item.fontRef || null,
       origFontRef: item.fontRef || null,
+      fontName: item.fontName || '',
     }
     setObjects((prev) => [...prev, ...whiteouts, textObj])
     setSelectedId(textObj.id)
@@ -295,6 +297,7 @@ export default function App() {
       font: sorted[0].fontCategory || 'sans',
       fontRef: sorted[0].fontRef || null,
       origFontRef: sorted[0].fontRef || null,
+      fontName: sorted[0].fontName || '',
     }
     setObjects((prev) => [...prev, ...whiteouts, textObj])
     setSelectedId(textObj.id)

@@ -77,9 +77,13 @@ export default function TextBox({ obj, selected, onSelect, onChange, onDragStart
         top: obj.y,
         fontSize: obj.fontSize,
         color: obj.color,
-        fontFamily: obj.fontRef
-          ? `"${obj.fontRef}", ${FAMILIES[obj.font] || FAMILIES.sans}`
-          : FAMILIES[obj.font] || FAMILIES.sans,
+        fontFamily: [
+          obj.fontRef ? `"${obj.fontRef}"` : '',
+          obj.fontName || '',
+          FAMILIES[obj.font] || FAMILIES.sans,
+        ]
+          .filter(Boolean)
+          .join(', '),
         // embedded fonts already encode weight/style; only synthesize for fallbacks
         fontWeight: obj.fontRef ? 'normal' : obj.bold ? 700 : 400,
         fontStyle: obj.fontRef ? 'normal' : obj.italic ? 'italic' : 'normal',
