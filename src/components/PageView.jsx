@@ -23,6 +23,7 @@ export default function PageView({
   onRemoveRegion,
   onReplaceRegion,
   onLiftRegion,
+  onReplaceImage,
   selectMode,
   onAreaSelect,
 }) {
@@ -153,6 +154,25 @@ export default function PageView({
               style={{ left: o.x, top: o.y, width: o.w, height: o.h, background: o.color }}
             />
           ))}
+
+        {/* Replace / Remove popup for the selected image (detected or lifted) */}
+        {(() => {
+          const selImg = objects.find((o) => o.type === 'image' && o.id === selectedId)
+          if (!selImg) return null
+          return (
+            <div
+              className="region-popup"
+              style={{
+                left: Math.max(8, Math.min(selImg.x, page.width - 200)),
+                top: Math.max(8, selImg.y - 44),
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <button className="rp-btn" onClick={() => onReplaceImage(selImg.id)}>↺ Replace</button>
+              <button className="rp-btn danger" onClick={() => onDelete(selImg.id)}>✕ Remove</button>
+            </div>
+          )
+        })()}
 
         {/* Highlight rectangles (under text/images) */}
         {objects

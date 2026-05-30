@@ -331,7 +331,12 @@ export default function App() {
   }
 
   function replaceRegion(region) {
-    replaceTarget.current = region
+    replaceTarget.current = { kind: 'region', region }
+    replaceInputRef.current?.click()
+  }
+
+  function replaceImage(id) {
+    replaceTarget.current = { kind: 'object', id }
     replaceInputRef.current?.click()
   }
 
@@ -380,39 +385,53 @@ export default function App() {
   }
 
   function handleReplaceFile(file) {
-    const region = replaceTarget.current
-    if (!region) return
+    const t = replaceTarget.current
+    if (!t) return
     const reader = new FileReader()
     reader.onload = () => {
       const img = new Image()
       img.onload = () => {
         snapshot()
-        const s = Math.min(region.width / img.naturalWidth, region.height / img.naturalHeight)
-        const w = img.naturalWidth * s
-        const h = img.naturalHeight * s
-        setObjects((prev) => [
-          ...prev,
-          {
-            id: newId(),
-            type: 'whiteout',
-            pageIndex: region.pageIndex,
-            x: region.x,
-            y: region.y,
-            w: region.width,
-            h: region.height,
-            color: '#ffffff',
-          },
-          {
-            id: newId(),
-            type: 'image',
-            pageIndex: region.pageIndex,
-            x: region.x + (region.width - w) / 2,
-            y: region.y + (region.height - h) / 2,
-            w,
-            h,
-            src: reader.result,
-          },
-        ])
+        if (t.kind === 'region') {
+          const region = t.region
+          const s = Math.min(region.width / img.naturalWidth, region.height / img.naturalHeight)
+          const w = img.naturalWidth * s
+          const h = img.naturalHeight * s
+          const imgId = newId()
+          setObjects((prev) => [
+            ...prev,
+            {
+              id: newId(),
+              type: 'whiteout',
+              pageIndex: region.pageIndex,
+              x: region.x,
+              y: region.y,
+              w: region.width,
+              h: region.height,
+              color: '#ffffff',
+            },
+            {
+              id: imgId,
+              type: 'image',
+              pageIndex: region.pageIndex,
+              x: region.x + (region.width - w) / 2,
+              y: region.y + (region.height - h) / 2,
+              w,
+              h,
+              src: reader.result,
+            },
+          ])
+          setSelectedId(imgId)
+        } else {
+          // swap an existing image object's src, keeping width and matching aspect
+          setObjects((prev) =>
+            prev.map((o) =>
+              o.id === t.id
+                ? { ...o, src: reader.result, h: o.w * (img.naturalHeight / img.naturalWidth) }
+                : o,
+            ),
+          )
+        }
         setSelectedRegion(null)
         replaceTarget.current = null
       }
@@ -528,6 +547,7 @@ export default function App() {
             onRemoveRegion={removeRegion}
             onReplaceRegion={replaceRegion}
             onLiftRegion={liftRegion}
+            onReplaceImage={replaceImage}
             selectMode={selectMode}
             onAreaSelect={areaSelect}
           />

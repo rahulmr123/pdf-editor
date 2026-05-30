@@ -75,30 +75,16 @@ export default function ImageBox({ obj, selected, onSelect, onChange, onDelete, 
     >
       <img src={obj.src} draggable={false} alt="" />
 
-      {selected && (
-        <>
-          <button
-            className="imagebox-del"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete(obj.id)
-            }}
-            title="Delete"
-          >
-            ×
-          </button>
-          {CORNERS.map((c) => (
-            <span
-              key={c}
-              className={`handle ${c}`}
-              onPointerDown={(e) => startResize(e, c)}
-              onPointerMove={onMove}
-              onPointerUp={endGesture}
-            />
-          ))}
-        </>
-      )}
+      {selected &&
+        CORNERS.map((c) => (
+          <span
+            key={c}
+            className={`handle ${c}`}
+            onPointerDown={(e) => startResize(e, c)}
+            onPointerMove={onMove}
+            onPointerUp={endGesture}
+          />
+        ))}
     </div>
   )
 }
