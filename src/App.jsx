@@ -129,7 +129,7 @@ export default function App() {
     setSelectedRegion(null)
     pendingEdit.current = {
       textId: text.id,
-      whiteoutId: whiteout.id,
+      whiteoutIds: [whiteout.id],
       originalText: item.str,
       originalFontSize: item.fontSize,
     }
@@ -207,17 +207,19 @@ export default function App() {
     const fontSize = sorted[0].fontSize
 
     snapshot()
-    const pad = 2
-    const whiteout = {
+    // Cover each text run individually (not one big box) so table borders /
+    // gridlines between cells stay visible.
+    const pad = 1
+    const whiteouts = items.map((it) => ({
       id: newId(),
       type: 'whiteout',
       pageIndex,
-      x: minX - pad,
-      y: minY - pad,
-      w: maxX - minX + pad * 2,
-      h: maxY - minY + pad * 2,
+      x: it.x - pad,
+      y: it.y - pad,
+      w: it.width + pad * 2,
+      h: it.height + pad * 2,
       color: '#ffffff',
-    }
+    }))
     const textObj = {
       id: newId(),
       type: 'text',
@@ -231,12 +233,12 @@ export default function App() {
       italic: false,
       bgColor: 'none',
     }
-    setObjects((prev) => [...prev, whiteout, textObj])
+    setObjects((prev) => [...prev, ...whiteouts, textObj])
     setSelectedId(textObj.id)
     setSelectedRegion(null)
     pendingEdit.current = {
       textId: textObj.id,
-      whiteoutId: whiteout.id,
+      whiteoutIds: whiteouts.map((w) => w.id),
       originalText: text,
       originalFontSize: fontSize,
     }
@@ -285,7 +287,9 @@ export default function App() {
         t.color === '#111111' &&
         (!t.bgColor || t.bgColor === 'none') &&
         Math.round(t.fontSize) === Math.round(p.originalFontSize)
-      return unchanged ? prev.filter((o) => o.id !== p.textId && o.id !== p.whiteoutId) : prev
+      return unchanged
+        ? prev.filter((o) => o.id !== p.textId && !p.whiteoutIds.includes(o.id))
+        : prev
     })
   }
 
