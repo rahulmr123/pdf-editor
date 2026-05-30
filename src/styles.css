@@ -363,7 +363,13 @@ body {
 .canvas-area[data-theme="dark"] {
   background: radial-gradient(130% 80% at 50% 0%, #241f1a, #14110e);
 }
-.canvas-area[data-theme="dark"] .page-bg { filter: invert(1) hue-rotate(180deg); }
+/* Dark mode: invert the page raster AND the white covers / added text so
+   removed/replaced areas don't glare white. Real images keep true colors. */
+.canvas-area[data-theme="dark"] .page-bg,
+.canvas-area[data-theme="dark"] .whiteout,
+.canvas-area[data-theme="dark"] .textbox {
+  filter: invert(1) hue-rotate(180deg);
+}
 .canvas-area[data-theme="sepia"] .page-bg { filter: sepia(.55) contrast(.95) brightness(1.02); }
 .canvas-area[data-theme="contrast"] .page-bg { filter: contrast(1.45) saturate(1.25); }
 
