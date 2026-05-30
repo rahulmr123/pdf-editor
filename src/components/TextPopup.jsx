@@ -70,10 +70,15 @@ export default function TextPopup({ obj, pageWidth, pageHeight, onChange, onDele
         <span className="tp-label">Font</span>
         <select
           className="tp-font"
-          value={obj.font || 'sans'}
-          onChange={(e) => onChange(obj.id, { font: e.target.value })}
-          title="Font family for this text"
+          value={obj.fontRef ? 'original' : obj.font || 'sans'}
+          onChange={(e) => {
+            const v = e.target.value
+            if (v === 'original') onChange(obj.id, { fontRef: obj.origFontRef })
+            else onChange(obj.id, { font: v, fontRef: null })
+          }}
+          title="Font for this text"
         >
+          {obj.origFontRef && <option value="original">Original (document font)</option>}
           <option value="sans">Sans-serif (Helvetica)</option>
           <option value="serif">Serif (Times)</option>
           <option value="mono">Monospace (Courier)</option>
