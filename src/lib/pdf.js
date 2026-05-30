@@ -23,6 +23,24 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
     const ctx = canvas.getContext('2d')
     await page.render({ canvasContext: ctx, viewport }).promise
 
+    // Pull out every text run with its on-screen box, so the user can click
+    // existing PDF text and edit it in place (white-out + editable overlay).
+    const textContent = await page.getTextContent()
+    const textItems = []
+    for (const item of textContent.items) {
+      if (!item.str || !item.str.trim()) continue
+      const tx = pdfjsLib.Util.transform(viewport.transform, item.transform)
+      const fontSize = Math.hypot(tx[2], tx[3])
+      textItems.push({
+        str: item.str,
+        x: tx[4], // displayed px, left
+        y: tx[5] - fontSize, // displayed px, top (tx[5] is the baseline)
+        width: item.width * scale,
+        height: fontSize,
+        fontSize,
+      })
+    }
+
     pages.push({
       pageIndex: i - 1,
       scale, // displayed px per PDF point
@@ -31,6 +49,7 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
       pdfWidth: base.width, // points
       pdfHeight: base.height,
       dataUrl: canvas.toDataURL('image/png'),
+      textItems,
     })
   }
 

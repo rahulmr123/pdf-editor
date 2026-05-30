@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { renderPdf } from './lib/pdf.js'
 import { exportPdf } from './lib/exportPdf.js'
 import UploadZone from './components/UploadZone.jsx'
@@ -17,10 +17,38 @@ export default function App() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
+  // Undo / redo history of the objects array.
+  const past = useRef([])
+  const future = useRef([])
+  const [, tick] = useReducer((x) => x + 1, 0)
+
   const selected = useMemo(
     () => objects.find((o) => o.id === selectedId) || null,
     [objects, selectedId],
   )
+
+  function snapshot() {
+    past.current.push(objects)
+    if (past.current.length > 100) past.current.shift()
+    future.current = []
+    tick()
+  }
+
+  function undo() {
+    if (!past.current.length) return
+    future.current.push(objects)
+    setObjects(past.current.pop())
+    setSelectedId(null)
+    tick()
+  }
+
+  function redo() {
+    if (!future.current.length) return
+    past.current.push(objects)
+    setObjects(future.current.pop())
+    setSelectedId(null)
+    tick()
+  }
 
   async function handleFile(file) {
     setError('')
@@ -32,6 +60,8 @@ export default function App() {
       setPages(rendered)
       setObjects([])
       setSelectedId(null)
+      past.current = []
+      future.current = []
     } catch (e) {
       console.error(e)
       setError('Could not read that PDF. Try another file.')
@@ -39,6 +69,7 @@ export default function App() {
   }
 
   function addText(pageIndex = 0, x = 60, y = 60) {
+    snapshot()
     const obj = {
       id: newId(),
       type: 'text',
@@ -48,9 +79,39 @@ export default function App() {
       text: 'New text',
       fontSize: 18,
       color: '#111111',
+      autoEdit: true,
     }
     setObjects((prev) => [...prev, obj])
     setSelectedId(obj.id)
+  }
+
+  // Click existing PDF text -> cover it and drop a matching editable box on top.
+  function editExisting(pageIndex, item) {
+    snapshot()
+    const pad = 1
+    const whiteout = {
+      id: newId(),
+      type: 'whiteout',
+      pageIndex,
+      x: item.x - pad,
+      y: item.y - pad,
+      w: item.width + pad * 2,
+      h: item.height + pad * 2,
+      color: '#ffffff',
+    }
+    const text = {
+      id: newId(),
+      type: 'text',
+      pageIndex,
+      x: item.x,
+      y: item.y,
+      text: item.str,
+      fontSize: item.fontSize,
+      color: '#111111',
+      autoEdit: true,
+    }
+    setObjects((prev) => [...prev, whiteout, text])
+    setSelectedId(text.id)
   }
 
   function updateObject(id, patch) {
@@ -58,6 +119,7 @@ export default function App() {
   }
 
   function deleteObject(id) {
+    snapshot()
     setObjects((prev) => prev.filter((o) => o.id !== id))
     setSelectedId(null)
   }
@@ -87,7 +149,29 @@ export default function App() {
     setObjects([])
     setSelectedId(null)
     setFileName('')
+    past.current = []
+    future.current = []
   }
+
+  // Keyboard: undo/redo + delete selected (ignored while typing in a field).
+  useEffect(() => {
+    function onKey(e) {
+      const tag = document.activeElement?.tagName
+      const typing = tag === 'TEXTAREA' || tag === 'INPUT'
+      const mod = e.metaKey || e.ctrlKey
+
+      if (mod && e.key.toLowerCase() === 'z') {
+        if (typing) return // let the field handle its own undo
+        e.preventDefault()
+        e.shiftKey ? redo() : undo()
+      } else if (!typing && (e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+        e.preventDefault()
+        deleteObject(selectedId)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [objects, selectedId])
 
   if (!pages.length) return <UploadZone onFile={handleFile} error={error} />
 
@@ -99,6 +183,10 @@ export default function App() {
         onChange={updateObject}
         onExport={handleExport}
         onReset={reset}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={past.current.length > 0}
+        canRedo={future.current.length > 0}
         busy={busy}
       />
       <div className="canvas-area">
@@ -112,6 +200,9 @@ export default function App() {
             onChange={updateObject}
             onDelete={deleteObject}
             onAddText={addText}
+            onEditExisting={editExisting}
+            onDragStart={snapshot}
+            onEditStart={snapshot}
           />
         ))}
       </div>

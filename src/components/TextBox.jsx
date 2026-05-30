@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
 // A draggable, editable text overlay. Drag to move, double-click to edit.
-export default function TextBox({ obj, selected, onSelect, onChange, onDelete }) {
-  const [editing, setEditing] = useState(false)
+export default function TextBox({ obj, selected, onSelect, onChange, onDelete, onDragStart, onEditStart }) {
+  const [editing, setEditing] = useState(!!obj.autoEdit)
   const drag = useRef(null)
   const taRef = useRef(null)
 
@@ -17,7 +17,8 @@ export default function TextBox({ obj, selected, onSelect, onChange, onDelete })
     if (editing) return
     e.stopPropagation()
     onSelect(obj.id)
-    drag.current = { sx: e.clientX, sy: e.clientY, ox: obj.x, oy: obj.y }
+    onDragStart?.()
+    drag.current = { sx: e.clientX, sy: e.clientY, ox: obj.x, oy: obj.y, moved: false }
     e.currentTarget.setPointerCapture(e.pointerId)
   }
 
@@ -53,6 +54,7 @@ export default function TextBox({ obj, selected, onSelect, onChange, onDelete })
       onPointerUp={onPointerUp}
       onDoubleClick={(e) => {
         e.stopPropagation()
+        onEditStart?.()
         setEditing(true)
       }}
     >

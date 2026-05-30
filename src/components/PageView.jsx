@@ -1,7 +1,7 @@
 import TextBox from './TextBox.jsx'
 
-// One PDF page: the rendered raster as a locked background, plus the overlay
-// layer that holds all editable objects for this page.
+// One PDF page: the rendered raster as a locked background, a clickable text
+// layer for editing existing text in place, and the editable object overlay.
 export default function PageView({
   page,
   objects,
@@ -10,6 +10,9 @@ export default function PageView({
   onChange,
   onDelete,
   onAddText,
+  onEditExisting,
+  onDragStart,
+  onEditStart,
 }) {
   return (
     <div className="page-wrap">
@@ -24,16 +27,48 @@ export default function PageView({
         }}
       >
         <img className="page-bg" src={page.dataUrl} draggable={false} alt="" />
-        {objects.map((obj) => (
-          <TextBox
-            key={obj.id}
-            obj={obj}
-            selected={obj.id === selectedId}
-            onSelect={onSelect}
-            onChange={onChange}
-            onDelete={onDelete}
+
+        {/* Clickable existing-text layer (transparent hit targets) */}
+        {page.textItems?.map((item, i) => (
+          <span
+            key={`t${i}`}
+            className="text-hit"
+            style={{ left: item.x, top: item.y, width: item.width, height: item.height }}
+            title="Click to edit this text"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              onEditExisting(page.pageIndex, item)
+            }}
           />
         ))}
+
+        {/* Whiteout covers (rendered before text so text sits on top) */}
+        {objects
+          .filter((o) => o.type === 'whiteout')
+          .map((o) => (
+            <div
+              key={o.id}
+              className="whiteout"
+              style={{ left: o.x, top: o.y, width: o.w, height: o.h, background: o.color }}
+            />
+          ))}
+
+        {/* Editable text objects */}
+        {objects
+          .filter((o) => o.type === 'text')
+          .map((obj) => (
+            <TextBox
+              key={obj.id}
+              obj={obj}
+              selected={obj.id === selectedId}
+              onSelect={onSelect}
+              onChange={onChange}
+              onDelete={onDelete}
+              onDragStart={onDragStart}
+              onEditStart={onEditStart}
+            />
+          ))}
       </div>
       <div className="page-label">Page {page.pageIndex + 1}</div>
     </div>

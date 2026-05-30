@@ -13,15 +13,32 @@ export async function exportPdf(originalArrayBuffer, pages, objects) {
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
   const docPages = pdfDoc.getPages()
 
-  for (const obj of objects) {
-    if (obj.type !== 'text' || !obj.text.trim()) continue
+  // Whiteouts first, so text drawn afterwards sits on top of the cover.
+  const ordered = [...objects].sort((a, b) => (a.type === 'whiteout' ? -1 : 1))
 
+  for (const obj of ordered) {
     const info = pages[obj.pageIndex]
     const page = docPages[obj.pageIndex]
     if (!info || !page) continue
 
     const { height: pdfPageHeight } = page.getSize()
     const scale = info.scale
+
+    if (obj.type === 'whiteout') {
+      const [wr, wg, wb] = hexToRgb(obj.color || '#ffffff')
+      const w = obj.w / scale
+      const h = obj.h / scale
+      page.drawRectangle({
+        x: obj.x / scale,
+        y: pdfPageHeight - obj.y / scale - h,
+        width: w,
+        height: h,
+        color: rgb(wr / 255, wg / 255, wb / 255),
+      })
+      continue
+    }
+
+    if (obj.type !== 'text' || !obj.text.trim()) continue
 
     // editor coords are screen px from the page's top-left.
     // PDF coords are points from the bottom-left, baseline-anchored.

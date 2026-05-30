@@ -1,11 +1,25 @@
-// Top toolbar: add text, tweak the selected object, export, start over.
-export default function Toolbar({ selected, onAddText, onChange, onExport, onReset, busy }) {
+// Top toolbar: add text, tweak the selected object, undo/redo, export, start over.
+export default function Toolbar({
+  selected,
+  onAddText,
+  onChange,
+  onExport,
+  onReset,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  busy,
+}) {
   return (
     <div className="toolbar">
       <div className="brand">📄 PDF Editor <span>prototype</span></div>
 
       <div className="tools">
         <button className="btn" onClick={() => onAddText()}>+ Text</button>
+        <button className="btn" onClick={onUndo} disabled={!canUndo} title="Undo (⌘Z)">↶</button>
+        <button className="btn" onClick={onRedo} disabled={!canRedo} title="Redo (⇧⌘Z)">↷</button>
+        <span className="hint">Tip: click any text on the page to edit it</span>
 
         {selected && (
           <div className="inspector">
