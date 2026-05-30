@@ -25,6 +25,24 @@ export default function App() {
   const replaceTarget = useRef(null)
   const replaceInputRef = useRef(null)
   const pendingEdit = useRef(null) // a click-to-edit that's reverted if left unchanged
+  const fontsRef = useRef({}) // embedded font programs from the PDF (for exact reuse)
+  const loadedFontNames = useRef(new Set())
+
+  // Load the PDF's embedded fonts into the browser so edited text renders in
+  // the exact same typeface on screen.
+  function loadFontFaces(fonts) {
+    if (!document.fonts) return
+    for (const [name, info] of Object.entries(fonts)) {
+      if (loadedFontNames.current.has(name)) continue
+      loadedFontNames.current.add(name)
+      try {
+        const ff = new FontFace(name, info.data)
+        ff.load()
+          .then((loaded) => document.fonts.add(loaded))
+          .catch(() => {})
+      } catch {}
+    }
+  }
 
   // Undo / redo history of the objects array.
   const past = useRef([])
@@ -63,7 +81,9 @@ export default function App() {
     setError('')
     try {
       const arrayBuffer = await file.arrayBuffer()
-      const rendered = await renderPdf(arrayBuffer)
+      const { pages: rendered, fonts } = await renderPdf(arrayBuffer)
+      fontsRef.current = fonts
+      loadFontFaces(fonts)
       setBuffer(arrayBuffer)
       setFileName(file.name)
       setPages(rendered)
@@ -92,6 +112,7 @@ export default function App() {
       italic: false,
       bgColor: 'none',
       font: 'sans',
+      fontRef: null,
     }
     setObjects((prev) => [...prev, obj])
     setSelectedId(obj.id)
@@ -156,6 +177,7 @@ export default function App() {
       italic: !!item.fontItalic,
       bgColor: 'none',
       font: item.fontCategory || 'sans',
+      fontRef: item.fontRef || null,
     }
     setObjects((prev) => [...prev, ...whiteouts, textObj])
     setSelectedId(textObj.id)
@@ -269,6 +291,7 @@ export default function App() {
       italic: !!sorted[0].fontItalic,
       bgColor: 'none',
       font: sorted[0].fontCategory || 'sans',
+      fontRef: sorted[0].fontRef || null,
     }
     setObjects((prev) => [...prev, ...whiteouts, textObj])
     setSelectedId(textObj.id)
@@ -494,7 +517,7 @@ export default function App() {
   async function handleExport() {
     setBusy(true)
     try {
-      const bytes = await exportPdf(buffer, pages, objects)
+      const bytes = await exportPdf(buffer, pages, objects, fontsRef.current)
       const blob = new Blob([bytes], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')

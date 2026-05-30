@@ -1,4 +1,5 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
 
 function hexToRgb(hex) {
   const m = hex.replace('#', '')
@@ -8,8 +9,22 @@ function hexToRgb(hex) {
 
 // Flatten the editor's overlay objects onto the ORIGINAL PDF, so the source
 // stays pixel-perfect and our edits are stamped on top.
-export async function exportPdf(originalArrayBuffer, pages, objects) {
+export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {}) {
   const pdfDoc = await PDFDocument.load(originalArrayBuffer.slice(0))
+  pdfDoc.registerFontkit(fontkit)
+
+  // Reuse the PDF's own embedded fonts when we have them (exact match).
+  const customCache = {}
+  const customFont = async (ref) => {
+    if (!ref || !fonts[ref]) return null
+    if (ref in customCache) return customCache[ref]
+    try {
+      customCache[ref] = await pdfDoc.embedFont(fonts[ref].data, { subset: false })
+    } catch {
+      customCache[ref] = null
+    }
+    return customCache[ref]
+  }
 
   // Match the original font family: serif -> Times, mono -> Courier, else Helvetica.
   const F = StandardFonts
@@ -98,14 +113,23 @@ export async function exportPdf(originalArrayBuffer, pages, objects) {
     const x = obj.x / scale
     const lineHeight = size * 1.2
     const [r, g, b] = hexToRgb(obj.color)
-    const font = fontFor(obj)
+    const stdFont = fontFor(obj)
+    const font = (await customFont(obj.fontRef)) || stdFont
     const lines = obj.text.split('\n')
+
+    const widthOf = (f, line) => {
+      try {
+        return f.widthOfTextAtSize(line, size)
+      } catch {
+        return 0
+      }
+    }
 
     // background fill behind the text (matches the on-screen padding)
     if (obj.bgColor && obj.bgColor !== 'none') {
       const padX = 3 / scale
       const padY = 2 / scale
-      const maxW = Math.max(...lines.map((l) => font.widthOfTextAtSize(l, size)))
+      const maxW = Math.max(...lines.map((l) => widthOf(font, l) || widthOf(stdFont, l)))
       const blockH = lines.length * lineHeight
       const [fr, fg, fb] = hexToRgb(obj.bgColor)
       page.drawRectangle({
@@ -120,13 +144,13 @@ export async function exportPdf(originalArrayBuffer, pages, objects) {
     lines.forEach((line, i) => {
       const topY = obj.y / scale + i * lineHeight
       const baselineY = pdfPageHeight - topY - size
-      page.drawText(line, {
-        x,
-        y: baselineY,
-        size,
-        font,
-        color: rgb(r / 255, g / 255, b / 255),
-      })
+      const color = rgb(r / 255, g / 255, b / 255)
+      // prefer the embedded font; fall back to a standard one if a glyph is missing
+      try {
+        page.drawText(line, { x, y: baselineY, size, font, color })
+      } catch {
+        page.drawText(line, { x, y: baselineY, size, font: stdFont, color })
+      }
     })
   }
 

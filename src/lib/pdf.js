@@ -81,6 +81,7 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
   // pdf.js detaches the buffer it receives — hand it a copy so the caller keeps theirs.
   const doc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise
   const pages = []
+  const fonts = {} // loadedName -> { data, mimetype } of embedded fonts (for exact reuse)
 
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i)
@@ -104,14 +105,20 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
     const getFontInfo = (fontName) => {
       if (fontName in fontInfoCache) return fontInfoCache[fontName]
       let name = ''
+      let fontRef = null
       try {
         if (page.commonObjs.has(fontName)) {
           const f = page.commonObjs.get(fontName)
           name = f?.name || f?.fallbackName || ''
+          // capture the actual embedded font program so edits can reuse it
+          if (f?.data && f.data.length && f.loadedName) {
+            fontRef = f.loadedName
+            if (!fonts[fontRef]) fonts[fontRef] = { data: f.data, mimetype: f.mimetype || 'font/opentype' }
+          }
         }
       } catch {}
       if (!name) name = textContent.styles?.[fontName]?.fontFamily || ''
-      const info = { fontCategory: classifyFamily(name), ...classifyStyle(name) }
+      const info = { fontCategory: classifyFamily(name), ...classifyStyle(name), fontRef }
       fontInfoCache[fontName] = info
       return info
     }
@@ -133,6 +140,7 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
         fontCategory: info.fontCategory,
         fontBold: info.bold,
         fontItalic: info.italic,
+        fontRef: info.fontRef,
       })
     }
 
@@ -156,5 +164,5 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
     })
   }
 
-  return pages
+  return { pages, fonts }
 }
