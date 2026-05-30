@@ -49,6 +49,12 @@ body {
 .btn:disabled { opacity: .45; cursor: default; }
 .btn.ghost { background: transparent; border-color: transparent; }
 .btn.ghost:hover { background: var(--surface); }
+.btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 12px var(--accent-glow);
+}
 
 .hint { font-size: 12px; color: var(--muted); margin-left: 4px; }
 
@@ -195,6 +201,48 @@ body {
   z-index: 2;
   pointer-events: none;
 }
+
+/* Image-edit mode: detected image regions + action popup */
+.img-region {
+  position: absolute;
+  z-index: 5;
+  cursor: pointer;
+  border: 1.5px dashed rgba(224, 81, 59, .55);
+  background: rgba(224, 81, 59, .06);
+  border-radius: 3px;
+  transition: background .1s ease;
+}
+.img-region:hover { background: rgba(224, 81, 59, .15); }
+.img-region.on {
+  border-style: solid;
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+.region-popup {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 12px 30px rgba(60, 35, 20, .22);
+}
+.rp-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.rp-btn:hover { background: #fff; }
+.rp-btn.danger { color: var(--danger); }
+.rp-btn.danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
 
 /* ---------- Text objects ---------- */
 .textbox {

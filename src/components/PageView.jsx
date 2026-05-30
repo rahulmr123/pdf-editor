@@ -15,18 +15,68 @@ export default function PageView({
   onDragStart,
   onEditStart,
   onGestureStart,
+  imageMode,
+  selectedRegion,
+  onSelectRegion,
+  onRemoveRegion,
+  onReplaceRegion,
 }) {
+  const regionOnThisPage =
+    imageMode && selectedRegion && selectedRegion.pageIndex === page.pageIndex
+      ? selectedRegion
+      : null
   return (
     <div className="page-wrap">
       <div
         className="page"
         style={{ width: page.width, height: page.height }}
-        onPointerDown={() => onSelect(null)}
+        onPointerDown={() => {
+          onSelect(null)
+          if (imageMode) onSelectRegion(null)
+        }}
       >
         <img className="page-bg" src={page.dataUrl} draggable={false} alt="" />
 
+        {/* Image-edit mode: detected image regions you can remove/replace */}
+        {imageMode &&
+          page.imageRegions?.map((rg, i) => {
+            const on = selectedRegion?.pageIndex === page.pageIndex && selectedRegion.index === i
+            return (
+              <div
+                key={`img${i}`}
+                className={`img-region ${on ? 'on' : ''}`}
+                style={{ left: rg.x, top: rg.y, width: rg.width, height: rg.height }}
+                title="Click to remove or replace this image"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelectRegion({ pageIndex: page.pageIndex, index: i, ...rg })
+                }}
+              />
+            )
+          })}
+
+        {regionOnThisPage && (
+          <div
+            className="region-popup"
+            style={{
+              left: Math.max(8, Math.min(regionOnThisPage.x, page.width - 196)),
+              top: Math.min(regionOnThisPage.y + regionOnThisPage.height + 6, page.height - 48),
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <button className="rp-btn" onClick={() => onReplaceRegion(regionOnThisPage)}>
+              ↺ Replace
+            </button>
+            <button className="rp-btn danger" onClick={() => onRemoveRegion(regionOnThisPage)}>
+              ✕ Remove
+            </button>
+          </div>
+        )}
+
         {/* Clickable existing-text layer (transparent hit targets) */}
-        {page.textItems?.map((item, i) => (
+        {!imageMode &&
+          page.textItems?.map((item, i) => (
           <span
             key={`t${i}`}
             className="text-hit"

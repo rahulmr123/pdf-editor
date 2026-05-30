@@ -6,6 +6,8 @@ export default function Toolbar({
   onAddText,
   onImageFile,
   onAddSignature,
+  imageMode,
+  onToggleImageMode,
   onChange,
   onExport,
   onReset,
@@ -25,6 +27,13 @@ export default function Toolbar({
         <button className="btn" onClick={() => onAddText()}>+ Text</button>
         <button className="btn" onClick={() => fileRef.current?.click()}>+ Image</button>
         <button className="btn" onClick={onAddSignature}>✎ Sign</button>
+        <button
+          className={`btn ${imageMode ? 'active' : ''}`}
+          onClick={onToggleImageMode}
+          title="Detect, remove or replace images in the PDF"
+        >
+          🖼 Images
+        </button>
         <input
           ref={fileRef}
           type="file"
@@ -39,7 +48,11 @@ export default function Toolbar({
         <span className="sep-v" />
         <button className="btn" onClick={onUndo} disabled={!canUndo} title="Undo (⌘Z)">↶</button>
         <button className="btn" onClick={onRedo} disabled={!canRedo} title="Redo (⇧⌘Z)">↷</button>
-        <span className="hint">Tip: click any text on the page to edit it</span>
+        <span className="hint">
+          {imageMode
+            ? 'Click a highlighted image to remove or replace it'
+            : 'Tip: click any text on the page to edit it'}
+        </span>
       </div>
 
       <div className="actions">

@@ -18,6 +18,10 @@ export default function App() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [showSig, setShowSig] = useState(false)
+  const [imageMode, setImageMode] = useState(false)
+  const [selectedRegion, setSelectedRegion] = useState(null)
+  const replaceTarget = useRef(null)
+  const replaceInputRef = useRef(null)
 
   // Undo / redo history of the objects array.
   const past = useRef([])
@@ -148,6 +152,78 @@ export default function App() {
     reader.readAsDataURL(file)
   }
 
+  function toggleImageMode() {
+    setImageMode((m) => !m)
+    setSelectedRegion(null)
+    setSelectedId(null)
+  }
+
+  // "Remove" a detected image = cover it with a whiteout (baked on export).
+  function removeRegion(region) {
+    snapshot()
+    setObjects((prev) => [
+      ...prev,
+      {
+        id: newId(),
+        type: 'whiteout',
+        pageIndex: region.pageIndex,
+        x: region.x,
+        y: region.y,
+        w: region.width,
+        h: region.height,
+        color: '#ffffff',
+      },
+    ])
+    setSelectedRegion(null)
+  }
+
+  function replaceRegion(region) {
+    replaceTarget.current = region
+    replaceInputRef.current?.click()
+  }
+
+  function handleReplaceFile(file) {
+    const region = replaceTarget.current
+    if (!region) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        snapshot()
+        const s = Math.min(region.width / img.naturalWidth, region.height / img.naturalHeight)
+        const w = img.naturalWidth * s
+        const h = img.naturalHeight * s
+        setObjects((prev) => [
+          ...prev,
+          {
+            id: newId(),
+            type: 'whiteout',
+            pageIndex: region.pageIndex,
+            x: region.x,
+            y: region.y,
+            w: region.width,
+            h: region.height,
+            color: '#ffffff',
+          },
+          {
+            id: newId(),
+            type: 'image',
+            pageIndex: region.pageIndex,
+            x: region.x + (region.width - w) / 2,
+            y: region.y + (region.height - h) / 2,
+            w,
+            h,
+            src: reader.result,
+          },
+        ])
+        setSelectedRegion(null)
+        replaceTarget.current = null
+      }
+      img.src = reader.result
+    }
+    reader.readAsDataURL(file)
+  }
+
   function updateObject(id, patch) {
     setObjects((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)))
   }
@@ -183,6 +259,8 @@ export default function App() {
     setObjects([])
     setSelectedId(null)
     setFileName('')
+    setImageMode(false)
+    setSelectedRegion(null)
     past.current = []
     future.current = []
   }
@@ -216,6 +294,8 @@ export default function App() {
         onAddText={() => addText(0, 60, 60)}
         onImageFile={handleImageFile}
         onAddSignature={() => setShowSig(true)}
+        imageMode={imageMode}
+        onToggleImageMode={toggleImageMode}
         onChange={updateObject}
         onExport={handleExport}
         onReset={reset}
@@ -239,9 +319,26 @@ export default function App() {
             onDragStart={snapshot}
             onEditStart={snapshot}
             onGestureStart={snapshot}
+            imageMode={imageMode}
+            selectedRegion={selectedRegion}
+            onSelectRegion={setSelectedRegion}
+            onRemoveRegion={removeRegion}
+            onReplaceRegion={replaceRegion}
           />
         ))}
       </div>
+
+      <input
+        ref={replaceInputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          if (f) handleReplaceFile(f)
+          e.target.value = ''
+        }}
+      />
 
       {showSig && (
         <SignaturePad
