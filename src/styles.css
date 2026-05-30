@@ -384,6 +384,18 @@ body {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--accent-tint);
 }
+.textbox .handle {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  background: #fff;
+  border: 1.5px solid var(--accent);
+  border-radius: 3px;
+}
+.textbox .handle.tl { top: -6px; left: -6px; cursor: nwse-resize; }
+.textbox .handle.tr { top: -6px; right: -6px; cursor: nesw-resize; }
+.textbox .handle.bl { bottom: -6px; left: -6px; cursor: nesw-resize; }
+.textbox .handle.br { bottom: -6px; right: -6px; cursor: nwse-resize; }
 .textbox textarea {
   border: none;
   outline: none;
