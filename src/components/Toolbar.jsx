@@ -6,8 +6,11 @@ export default function Toolbar({
   onAddText,
   onImageFile,
   onAddSignature,
+  onAddHighlight,
   imageMode,
   onToggleImageMode,
+  viewTheme,
+  onViewTheme,
   onChange,
   onExport,
   onReset,
@@ -27,6 +30,7 @@ export default function Toolbar({
         <button className="btn" onClick={() => onAddText()}>+ Text</button>
         <button className="btn" onClick={() => fileRef.current?.click()}>+ Image</button>
         <button className="btn" onClick={onAddSignature}>✎ Sign</button>
+        <button className="btn" onClick={onAddHighlight}>🖍 Highlight</button>
         <button
           className={`btn ${imageMode ? 'active' : ''}`}
           onClick={onToggleImageMode}
@@ -56,6 +60,17 @@ export default function Toolbar({
       </div>
 
       <div className="actions">
+        <select
+          className="theme-select"
+          value={viewTheme}
+          onChange={(e) => onViewTheme(e.target.value)}
+          title="Reading theme (changes how pages look on screen)"
+        >
+          <option value="normal">◐ View: Normal</option>
+          <option value="dark">🌙 View: Dark</option>
+          <option value="sepia">📜 View: Sepia</option>
+          <option value="contrast">◼ View: High contrast</option>
+        </select>
         <button className="btn ghost" onClick={onReset}>New file</button>
         <button className="btn primary" onClick={onExport} disabled={busy}>
           {busy ? 'Exporting…' : '⬇ Export PDF'}

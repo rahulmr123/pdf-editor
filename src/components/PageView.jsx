@@ -1,5 +1,6 @@
 import TextBox from './TextBox.jsx'
 import ImageBox from './ImageBox.jsx'
+import HighlightBox from './HighlightBox.jsx'
 import TextPopup from './TextPopup.jsx'
 
 // One PDF page: the rendered raster as a locked background, a clickable text
@@ -95,6 +96,21 @@ export default function PageView({
               key={o.id}
               className="whiteout"
               style={{ left: o.x, top: o.y, width: o.w, height: o.h, background: o.color }}
+            />
+          ))}
+
+        {/* Highlight rectangles (under text/images) */}
+        {objects
+          .filter((o) => o.type === 'highlight')
+          .map((obj) => (
+            <HighlightBox
+              key={obj.id}
+              obj={obj}
+              selected={obj.id === selectedId}
+              onSelect={onSelect}
+              onChange={onChange}
+              onDelete={onDelete}
+              onGestureStart={onGestureStart}
             />
           ))}
 

@@ -45,6 +45,21 @@ export async function exportPdf(originalArrayBuffer, pages, objects) {
       continue
     }
 
+    if (obj.type === 'highlight') {
+      const [hr, hg, hb] = hexToRgb(obj.color)
+      const w = obj.w / scale
+      const h = obj.h / scale
+      page.drawRectangle({
+        x: obj.x / scale,
+        y: pdfPageHeight - obj.y / scale - h,
+        width: w,
+        height: h,
+        color: rgb(hr / 255, hg / 255, hb / 255),
+        opacity: obj.opacity ?? 0.4,
+      })
+      continue
+    }
+
     if (obj.type === 'image') {
       try {
         const img = obj.src.startsWith('data:image/png')

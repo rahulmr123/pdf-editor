@@ -20,6 +20,7 @@ export default function App() {
   const [showSig, setShowSig] = useState(false)
   const [imageMode, setImageMode] = useState(false)
   const [selectedRegion, setSelectedRegion] = useState(null)
+  const [viewTheme, setViewTheme] = useState('normal')
   const replaceTarget = useRef(null)
   const replaceInputRef = useRef(null)
 
@@ -137,6 +138,23 @@ export default function App() {
       w: w * scale,
       h: h * scale,
       src,
+    }
+    setObjects((prev) => [...prev, obj])
+    setSelectedId(obj.id)
+  }
+
+  function addHighlight() {
+    snapshot()
+    const obj = {
+      id: newId(),
+      type: 'highlight',
+      pageIndex: 0,
+      x: 80,
+      y: 120,
+      w: 180,
+      h: 26,
+      color: '#FFE600',
+      opacity: 0.4,
     }
     setObjects((prev) => [...prev, obj])
     setSelectedId(obj.id)
@@ -304,8 +322,11 @@ export default function App() {
         onAddText={() => addText(0, 60, 60)}
         onImageFile={handleImageFile}
         onAddSignature={() => setShowSig(true)}
+        onAddHighlight={addHighlight}
         imageMode={imageMode}
         onToggleImageMode={toggleImageMode}
+        viewTheme={viewTheme}
+        onViewTheme={setViewTheme}
         onChange={updateObject}
         onExport={handleExport}
         onReset={reset}
@@ -315,7 +336,7 @@ export default function App() {
         canRedo={future.current.length > 0}
         busy={busy}
       />
-      <div className="canvas-area">
+      <div className="canvas-area" data-theme={viewTheme}>
         {pages.map((page) => (
           <PageView
             key={page.pageIndex}

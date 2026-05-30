@@ -251,6 +251,76 @@ body {
 .rp-btn.danger { color: var(--danger); }
 .rp-btn.danger:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
 
+/* ---------- Highlight rectangles ---------- */
+.highlightbox {
+  position: absolute;
+  z-index: 2;
+  cursor: move;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  touch-action: none;
+}
+.highlightbox.selected { box-shadow: 0 0 0 1.5px var(--accent); }
+.highlightbox .handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 1.5px solid var(--accent);
+  border-radius: 3px;
+}
+.highlightbox .handle.tl { top: -7px; left: -7px; cursor: nwse-resize; }
+.highlightbox .handle.tr { top: -7px; right: -7px; cursor: nesw-resize; }
+.highlightbox .handle.bl { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.highlightbox .handle.br { bottom: -7px; right: -7px; cursor: nwse-resize; }
+.hl-bar {
+  position: absolute;
+  top: -42px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 5px 7px;
+  box-shadow: 0 8px 24px rgba(60, 35, 20, .2);
+}
+.hl-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, .15);
+  cursor: pointer;
+  padding: 0;
+}
+.hl-swatch.on { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hl-sep { width: 1px; height: 18px; background: var(--line); }
+.hl-del {
+  width: 24px; height: 24px; border: none; background: transparent;
+  color: var(--danger); font-size: 14px; cursor: pointer; border-radius: 6px;
+}
+.hl-del:hover { background: var(--danger); color: #fff; }
+
+/* ---------- Reading themes (view-only filters on the page raster) ---------- */
+.theme-select {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.canvas-area[data-theme="dark"] {
+  background: radial-gradient(130% 80% at 50% 0%, #241f1a, #14110e);
+}
+.canvas-area[data-theme="dark"] .page-bg { filter: invert(1) hue-rotate(180deg); }
+.canvas-area[data-theme="sepia"] .page-bg { filter: sepia(.55) contrast(.95) brightness(1.02); }
+.canvas-area[data-theme="contrast"] .page-bg { filter: contrast(1.45) saturate(1.25); }
+
 /* ---------- Text objects ---------- */
 .textbox {
   position: absolute;
