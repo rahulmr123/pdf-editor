@@ -152,8 +152,8 @@ export default function App() {
       text,
       fontSize: item.fontSize,
       color: '#111111',
-      bold: false,
-      italic: false,
+      bold: !!item.fontBold,
+      italic: !!item.fontItalic,
       bgColor: 'none',
       font: item.fontCategory || 'sans',
     }
@@ -165,6 +165,9 @@ export default function App() {
       whiteoutIds: whiteouts.map((w) => w.id),
       originalText: text,
       originalFontSize: item.fontSize,
+      originalBold: !!item.fontBold,
+      originalItalic: !!item.fontItalic,
+      originalFont: item.fontCategory || 'sans',
     }
   }
 
@@ -262,8 +265,8 @@ export default function App() {
       text,
       fontSize,
       color: '#111111',
-      bold: false,
-      italic: false,
+      bold: !!sorted[0].fontBold,
+      italic: !!sorted[0].fontItalic,
       bgColor: 'none',
       font: sorted[0].fontCategory || 'sans',
     }
@@ -275,6 +278,9 @@ export default function App() {
       whiteoutIds: whiteouts.map((w) => w.id),
       originalText: text,
       originalFontSize: fontSize,
+      originalBold: !!sorted[0].fontBold,
+      originalItalic: !!sorted[0].fontItalic,
+      originalFont: sorted[0].fontCategory || 'sans',
     }
   }
 
@@ -316,8 +322,9 @@ export default function App() {
       if (!t) return prev
       const unchanged =
         t.text === p.originalText &&
-        !t.bold &&
-        !t.italic &&
+        t.bold === p.originalBold &&
+        t.italic === p.originalItalic &&
+        t.font === p.originalFont &&
         t.color === '#111111' &&
         (!t.bgColor || t.bgColor === 'none') &&
         Math.round(t.fontSize) === Math.round(p.originalFontSize)

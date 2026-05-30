@@ -47,6 +47,33 @@ async function detectImages(page, viewport) {
   return regions
 }
 
+// Classify a font's family / style from its PostScript or family name.
+function classifyFamily(name) {
+  const n = (name || '').toLowerCase()
+  if (n.includes('courier') || n.includes('mono') || n.includes('consol') || n.includes('menlo'))
+    return 'mono'
+  if (
+    n.includes('times') ||
+    n.includes('georgia') ||
+    n.includes('garamond') ||
+    n.includes('minion') ||
+    n.includes('roman') ||
+    n.includes('cambria') ||
+    n.includes('palatino') ||
+    n.includes('book antiqua') ||
+    (n.includes('serif') && !n.includes('sans'))
+  )
+    return 'serif'
+  return 'sans'
+}
+function classifyStyle(name) {
+  const n = (name || '').toLowerCase()
+  return {
+    bold: /bold|black|heavy|semibold/.test(n),
+    italic: /italic|oblique/.test(n),
+  }
+}
+
 // Render every page of a PDF to a raster image we can show as a locked background.
 // We keep both the displayed pixel size (scaled) and the native PDF size (points)
 // so we can map editor coordinates back to PDF coordinates on export.
@@ -70,24 +97,31 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
     // Pull out every text run with its on-screen box, so the user can click
     // existing PDF text and edit it in place (white-out + editable overlay).
     const textContent = await page.getTextContent()
+
+    // Resolve each font's real name (PostScript name) from commonObjs — populated
+    // after render — and cache the family/style classification per font id.
+    const fontInfoCache = {}
+    const getFontInfo = (fontName) => {
+      if (fontName in fontInfoCache) return fontInfoCache[fontName]
+      let name = ''
+      try {
+        if (page.commonObjs.has(fontName)) {
+          const f = page.commonObjs.get(fontName)
+          name = f?.name || f?.fallbackName || ''
+        }
+      } catch {}
+      if (!name) name = textContent.styles?.[fontName]?.fontFamily || ''
+      const info = { fontCategory: classifyFamily(name), ...classifyStyle(name) }
+      fontInfoCache[fontName] = info
+      return info
+    }
+
     const textItems = []
     for (const item of textContent.items) {
       if (!item.str || !item.str.trim()) continue
       const tx = pdfjsLib.Util.transform(viewport.transform, item.transform)
       const fontSize = Math.hypot(tx[2], tx[3])
-
-      // classify the run's font family so edits can match it
-      const fam = (textContent.styles?.[item.fontName]?.fontFamily || '').toLowerCase()
-      let fontCategory = 'sans'
-      if (fam.includes('mono') || fam.includes('courier')) fontCategory = 'mono'
-      else if (fam.includes('sans')) fontCategory = 'sans'
-      else if (
-        fam.includes('serif') ||
-        fam.includes('times') ||
-        fam.includes('roman') ||
-        fam.includes('georgia')
-      )
-        fontCategory = 'serif'
+      const info = getFontInfo(item.fontName)
 
       textItems.push({
         str: item.str,
@@ -96,7 +130,9 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
         width: item.width * scale,
         height: fontSize,
         fontSize,
-        fontCategory,
+        fontCategory: info.fontCategory,
+        fontBold: info.bold,
+        fontItalic: info.italic,
       })
     }
 
