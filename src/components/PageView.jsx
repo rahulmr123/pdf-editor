@@ -22,6 +22,7 @@ export default function PageView({
   onSelectRegion,
   onRemoveRegion,
   onReplaceRegion,
+  onLiftRegion,
   selectMode,
   onAreaSelect,
 }) {
@@ -85,6 +86,7 @@ export default function PageView({
             'show-all' outlines every image when the Images toggle is on. */}
         {!selectMode &&
           page.imageRegions?.map((rg, i) => {
+          if (isCovered(rg)) return null
           const on = selectedRegion?.pageIndex === page.pageIndex && selectedRegion.index === i
           return (
             <div
@@ -105,11 +107,14 @@ export default function PageView({
           <div
             className="region-popup"
             style={{
-              left: Math.max(8, Math.min(regionOnThisPage.x, page.width - 196)),
+              left: Math.max(8, Math.min(regionOnThisPage.x, page.width - 290)),
               top: Math.min(regionOnThisPage.y + regionOnThisPage.height + 6, page.height - 48),
             }}
             onPointerDown={(e) => e.stopPropagation()}
           >
+            <button className="rp-btn" onClick={() => onLiftRegion(regionOnThisPage)}>
+              ⤢ Resize
+            </button>
             <button className="rp-btn" onClick={() => onReplaceRegion(regionOnThisPage)}>
               ↺ Replace
             </button>

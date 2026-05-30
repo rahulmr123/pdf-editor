@@ -335,6 +335,50 @@ export default function App() {
     replaceInputRef.current?.click()
   }
 
+  // "Lift" a detected image into a movable/resizable object: crop it out of the
+  // rendered page, cover the original, and drop the crop as an image object.
+  function liftRegion(region) {
+    const page = pages.find((p) => p.pageIndex === region.pageIndex)
+    if (!page) return
+    const image = new Image()
+    image.onload = () => {
+      const w = Math.max(1, Math.round(region.width))
+      const h = Math.max(1, Math.round(region.height))
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      canvas
+        .getContext('2d')
+        .drawImage(image, region.x, region.y, region.width, region.height, 0, 0, w, h)
+      const src = canvas.toDataURL('image/png')
+      snapshot()
+      const whiteout = {
+        id: newId(),
+        type: 'whiteout',
+        pageIndex: region.pageIndex,
+        x: region.x,
+        y: region.y,
+        w: region.width,
+        h: region.height,
+        color: '#ffffff',
+      }
+      const imgObj = {
+        id: newId(),
+        type: 'image',
+        pageIndex: region.pageIndex,
+        x: region.x,
+        y: region.y,
+        w: region.width,
+        h: region.height,
+        src,
+      }
+      setObjects((prev) => [...prev, whiteout, imgObj])
+      setSelectedId(imgObj.id)
+      setSelectedRegion(null)
+    }
+    image.src = page.dataUrl
+  }
+
   function handleReplaceFile(file) {
     const region = replaceTarget.current
     if (!region) return
@@ -483,6 +527,7 @@ export default function App() {
             onSelectRegion={selectRegion}
             onRemoveRegion={removeRegion}
             onReplaceRegion={replaceRegion}
+            onLiftRegion={liftRegion}
             selectMode={selectMode}
             onAreaSelect={areaSelect}
           />
