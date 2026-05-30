@@ -1,17 +1,18 @@
 :root {
-  /* Studio Dark identity */
-  --bg: #0e0f12; /* canvas */
-  --bg-hi: #181a20; /* canvas highlight (top) */
-  --panel: #16181d; /* bars / rails */
-  --line: #262a31;
-  --ink: #e7e9ee; /* text on dark chrome */
-  --muted: #8a8f98;
-  --surface: #1e2128; /* inputs / secondary buttons */
-  --surface-2: #22262e;
-  --accent: #7c5cff;
-  --accent-d: #6a4cf0;
-  --accent-glow: rgba(124, 92, 255, 0.45);
-  --accent-tint: rgba(124, 92, 255, 0.14);
+  /* "Her" — warm, intimate, near-future-human */
+  --bg: #f2e7db; /* warm cream canvas */
+  --bg-hi: #f9f1e9; /* soft highlight (top) */
+  --panel: #f6ece2; /* bars / rails */
+  --line: #e7d6c8;
+  --ink: #2b221c; /* warm near-black */
+  --muted: #9b8678; /* warm taupe */
+  --surface: #fbf4ed; /* inputs / secondary buttons */
+  --surface-2: #f1e4d8;
+  --accent: #e0513b; /* Her coral-red */
+  --accent-d: #cb4631;
+  --accent-glow: rgba(224, 81, 59, 0.38);
+  --accent-tint: rgba(224, 81, 59, 0.10);
+  --danger: #c8402b;
 }
 
 * { box-sizing: border-box; }
@@ -19,7 +20,7 @@
 html, body, #root { height: 100%; margin: 0; }
 
 body {
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   color: var(--ink);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -29,23 +30,23 @@ body {
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink);
-  padding: 8px 14px;
-  border-radius: 10px;
+  padding: 8px 15px;
+  border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all .15s ease;
 }
-.btn:hover { background: var(--surface-2); border-color: #313641; }
+.btn:hover { background: #fff; border-color: #dcc8b8; }
 .btn.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
-  box-shadow: 0 2px 12px var(--accent-glow);
+  box-shadow: 0 3px 14px var(--accent-glow);
 }
 .btn.primary:hover { background: var(--accent-d); }
 .btn.primary:disabled { opacity: .6; cursor: default; }
-.btn:disabled { opacity: .4; cursor: default; }
+.btn:disabled { opacity: .45; cursor: default; }
 .btn.ghost { background: transparent; border-color: transparent; }
 .btn.ghost:hover { background: var(--surface); }
 
@@ -58,27 +59,34 @@ body {
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(120% 90% at 50% -10%, var(--bg-hi), var(--bg));
+    radial-gradient(130% 100% at 50% -10%, var(--bg-hi), var(--bg));
 }
 .dropzone {
   width: min(620px, 92vw);
   background: var(--panel);
-  border: 2px dashed #2c313b;
-  border-radius: 20px;
-  padding: 56px 32px;
+  border: 2px dashed #d9c4b2;
+  border-radius: 24px;
+  padding: 60px 32px;
   text-align: center;
   cursor: pointer;
   transition: all .2s ease;
+  box-shadow: 0 20px 50px rgba(120, 70, 40, .10);
 }
 .dropzone.over {
   border-color: var(--accent);
-  background: #191b22;
+  background: #fbf2ea;
   box-shadow: 0 0 0 6px var(--accent-tint);
 }
 .dz-icon { font-size: 52px; }
-.dropzone h1 { font-size: 24px; margin: 12px 0 6px; letter-spacing: -.01em; }
-.dropzone p { color: var(--muted); margin: 0 0 20px; }
-.error { color: #f87171; font-weight: 600; }
+.dropzone h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 27px;
+  margin: 14px 0 6px;
+  letter-spacing: -.01em;
+}
+.dropzone p { color: var(--muted); margin: 0 0 22px; }
+.error { color: var(--danger); font-weight: 600; }
 
 /* ---------- App shell ---------- */
 .app {
@@ -92,7 +100,7 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 10px 16px;
+  padding: 11px 18px;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
   position: sticky;
@@ -100,20 +108,21 @@ body {
   z-index: 10;
 }
 .brand {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 19px;
   letter-spacing: -.01em;
 }
 .brand span {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
   font-size: 11px;
   color: var(--muted);
   background: var(--surface);
-  padding: 2px 6px;
-  border-radius: 6px;
-  margin-left: 4px;
+  padding: 2px 7px;
+  border-radius: 7px;
+  margin-left: 6px;
+  vertical-align: middle;
 }
 .tools { display: flex; align-items: center; gap: 12px; }
 .actions { margin-left: auto; display: flex; gap: 10px; }
@@ -131,7 +140,7 @@ body {
   width: 60px;
   padding: 6px 8px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 9px;
   background: var(--surface);
   color: var(--ink);
 }
@@ -140,7 +149,7 @@ body {
   height: 30px;
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 9px;
   background: var(--surface);
 }
 
@@ -154,17 +163,17 @@ body {
   align-items: center;
   gap: 28px;
   background:
-    radial-gradient(120% 70% at 50% 0%, var(--bg-hi), var(--bg));
+    radial-gradient(130% 80% at 50% 0%, var(--bg-hi), var(--bg));
 }
 .page-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .page {
   position: relative;
-  background: #fff;
-  border-radius: 3px;
+  background: #fffdf9; /* warm white paper */
+  border-radius: 4px;
   overflow: hidden;
   box-shadow:
-    0 18px 50px rgba(0, 0, 0, .55),
-    0 0 0 1px rgba(255, 255, 255, .04);
+    0 16px 44px rgba(120, 70, 40, .16),
+    0 0 0 1px rgba(80, 50, 30, .04);
 }
 .page-bg { display: block; width: 100%; height: 100%; user-select: none; }
 .page-label { font-size: 12px; color: var(--muted); }
@@ -174,7 +183,7 @@ body {
   position: absolute;
   z-index: 1;
   cursor: text;
-  border-radius: 2px;
+  border-radius: 3px;
   transition: background .1s ease;
 }
 .text-hit:hover { background: var(--accent-tint); outline: 1px solid var(--accent); }
@@ -195,7 +204,7 @@ body {
   white-space: pre;
   padding: 2px 3px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 5px;
 }
 .textbox.selected {
   border-color: var(--accent);
@@ -220,7 +229,7 @@ body {
   height: 20px;
   border-radius: 50%;
   border: none;
-  background: #ef4444;
+  background: var(--danger);
   color: #fff;
   font-size: 14px;
   line-height: 1;
