@@ -13,7 +13,7 @@ export default function Toolbar({
 }) {
   return (
     <div className="toolbar">
-      <div className="brand">📄 PDF Editor <span>prototype</span></div>
+      <div className="brand">◷ pdfly <span>prototype</span></div>
 
       <div className="tools">
         <button className="btn" onClick={() => onAddText()}>+ Text</button>

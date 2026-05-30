@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PDF Editor — Visual Identity Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400..600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #e9e9ee;
+    color: #15161a;
+    padding: 40px 20px 80px;
+  }
+  .page-head { max-width: 920px; margin: 0 auto 8px; }
+  .page-head h1 { font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
+  .page-head p { color: #6b7280; margin-top: 6px; font-size: 15px; }
+
+  .section { max-width: 920px; margin: 36px auto 0; }
+  .section .label-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .section h2 { font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
+  .section .tag {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    color: #fff; padding: 3px 9px; border-radius: 999px;
+  }
+  .section .vibe { color: #6b7280; font-size: 14px; margin: 6px 0 14px; }
+
+  .swatches { display: flex; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+  .sw { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #4b5563; }
+  .sw .chip { width: 26px; height: 26px; border-radius: 7px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+  .sw b { color: #15161a; font-weight: 600; }
+
+  /* ---------- The mock editor ---------- */
+  .mock {
+    height: 470px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(20,22,30,.18), 0 4px 12px rgba(20,22,30,.08);
+    display: flex; flex-direction: column;
+    font-family: var(--font);
+    background: var(--canvas);
+  }
+  .bar {
+    height: 56px; flex: none;
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 18px;
+    background: var(--chrome);
+    border-bottom: 1px solid var(--line);
+    color: var(--chrome-ink);
+  }
+  .brand { font-weight: 800; font-size: 16px; letter-spacing: -.01em; display: flex; align-items: center; gap: 7px; font-family: var(--display); }
+  .brand .dot { color: var(--accent); font-size: 18px; }
+  .search {
+    flex: 1; max-width: 360px; margin: 0 auto;
+    display: flex; align-items: center; gap: 8px;
+    height: 34px; padding: 0 12px; border-radius: 9px;
+    background: var(--search-bg);
+    border: 1px solid var(--line);
+    color: var(--muted); font-size: 13px;
+  }
+  .search kbd {
+    margin-left: auto; font-size: 11px; font-family: var(--font);
+    background: var(--kbd-bg); color: var(--muted);
+    padding: 2px 6px; border-radius: 5px; border: 1px solid var(--line);
+  }
+  .actions { display: flex; align-items: center; gap: 8px; }
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--search-bg); color: var(--chrome-ink); font-size: 15px; cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .export {
+    height: 34px; padding: 0 16px; border-radius: 9px; border: none;
+    background: var(--accent); color: #fff; font-weight: 600; font-size: 13px; cursor: pointer;
+    font-family: var(--font);
+    box-shadow: 0 2px 8px var(--accent-glow);
+  }
+
+  .body { flex: 1; display: flex; min-height: 0; }
+  .stage {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    padding: 30px; gap: 12px; overflow: hidden;
+    background:
+      radial-gradient(120% 80% at 50% 0%, var(--canvas-hi), var(--canvas));
+  }
+  .sheet {
+    width: 340px; flex: 1;
+    background: var(--page);
+    border-radius: 4px;
+    box-shadow: var(--page-shadow);
+    padding: 26px 28px;
+    color: #1f2430;
+    position: relative;
+  }
+  .doc-title { font-size: 22px; font-weight: 800; letter-spacing: .02em; color: #11141b; font-family: var(--display); }
+  .doc-sub { color: #8b93a3; font-size: 11px; margin-top: 3px; letter-spacing: .03em; }
+  .rule { height: 1px; background: #eceef2; margin: 16px 0; }
+  .line { height: 9px; border-radius: 4px; background: #eef0f4; margin: 9px 0; }
+  .line.s { width: 55%; }
+  .line.m { width: 78%; }
+  .doc-foot { position: absolute; left: 28px; right: 28px; bottom: 22px; }
+
+  /* selected text element with floating toolbar */
+  .selected {
+    margin-top: 18px;
+    display: inline-block;
+    position: relative;
+    padding: 5px 8px;
+    border-radius: 6px;
+    outline: 1.5px solid var(--accent);
+    background: var(--accent-tint);
+    font-weight: 700; font-size: 15px; color: #11141b;
+  }
+  .selected .handle {
+    position: absolute; width: 8px; height: 8px; border-radius: 2px;
+    background: #fff; outline: 1.5px solid var(--accent);
+  }
+  .selected .handle.tl { top: -4px; left: -4px; }
+  .selected .handle.tr { top: -4px; right: -4px; }
+  .selected .handle.bl { bottom: -4px; left: -4px; }
+  .selected .handle.br { bottom: -4px; right: -4px; }
+  .float-toolbar {
+    position: absolute; top: -44px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 4px;
+    background: var(--toolbar-bg); color: var(--toolbar-ink);
+    border: 1px solid var(--toolbar-line);
+    padding: 5px 7px; border-radius: 10px; white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(10,12,20,.22);
+    font-size: 13px; font-weight: 600;
+  }
+  .float-toolbar .ft { padding: 3px 7px; border-radius: 6px; }
+  .float-toolbar .ft:hover { background: rgba(125,125,140,.18); }
+  .float-toolbar .sep { width: 1px; height: 16px; background: var(--toolbar-line); margin: 0 2px; }
+  .float-toolbar .swatch { width: 14px; height: 14px; border-radius: 4px; background: var(--accent); }
+
+  .meta { color: var(--muted); font-size: 12px; font-weight: 500; }
+
+  /* collapsed AI assistant rail */
+  .assistant {
+    width: 52px; flex: none;
+    background: var(--panel);
+    border-left: 1px solid var(--line);
+    display: flex; flex-direction: column; align-items: center; padding-top: 16px; gap: 14px;
+  }
+  .assistant .ai {
+    width: 34px; height: 34px; border-radius: 10px;
+    display: grid; place-items: center; font-size: 16px;
+    background: var(--accent); color: #fff;
+    box-shadow: 0 4px 14px var(--accent-glow);
+  }
+  .assistant .vlabel {
+    writing-mode: vertical-rl; color: var(--muted); font-size: 11px;
+    letter-spacing: .12em; text-transform: uppercase; margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <h1>Visual identity — 4 directions</h1>
+    <p>Same editor (“Calm Canvas” layout, with the AI assistant collapsed on the right). Only the identity changes. Pick the one that feels right.</p>
+  </div>
+  <div id="gallery"></div>
+
+<script>
+const themes = [
+  {
+    id: 'ink-indigo', name: 'Ink & Indigo', tagColor: '#4F46E5',
+    vibe: 'Calm, premium, trustworthy — the Linear / Notion school. Recommended for a privacy-first, document-first editor.',
+    vars: {
+      '--font': "'Inter', sans-serif", '--display': "'Inter', sans-serif",
+      '--canvas': '#F4F5F7', '--canvas-hi': '#FBFBFD', '--page': '#FFFFFF',
+      '--chrome': '#FFFFFF', '--chrome-ink': '#15161A', '--muted': '#6B7280',
+      '--accent': '#4F46E5', '--accent-glow': 'rgba(79,70,229,.35)', '--accent-tint': 'rgba(79,70,229,.07)',
+      '--line': '#E7E8EC', '--search-bg': '#F6F7F9', '--kbd-bg': '#FFFFFF', '--panel': '#FCFCFD',
+      '--page-shadow': '0 12px 34px rgba(20,22,30,.13)',
+      '--toolbar-bg': '#1B1C22', '--toolbar-ink': '#fff', '--toolbar-line': 'rgba(255,255,255,.14)',
+    },
+    swatches: [['Canvas','#F4F5F7'],['Page','#FFFFFF'],['Ink','#15161A'],['Accent','#4F46E5']],
+  },
+  {
+    id: 'studio-dark', name: 'Studio Dark', tagColor: '#7C5CFF',
+    vibe: 'Focused, dramatic, expensive — Figma studio. Bright pages float on dark chrome; pairs beautifully with glowing AI later.',
+    vars: {
+      '--font': "'Inter', sans-serif", '--display': "'Space Grotesk', sans-serif",
+      '--canvas': '#0E0F12', '--canvas-hi': '#181A20', '--page': '#FFFFFF',
+      '--chrome': '#16181D', '--chrome-ink': '#E7E9EE', '--muted': '#8A8F98',
+      '--accent': '#7C5CFF', '--accent-glow': 'rgba(124,92,255,.5)', '--accent-tint': 'rgba(124,92,255,.12)',
+      '--line': '#262A31', '--search-bg': '#1E2128', '--kbd-bg': '#22262E', '--panel': '#16181D',
+      '--page-shadow': '0 18px 50px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04)',
+      '--toolbar-bg': '#23262E', '--toolbar-ink': '#fff', '--toolbar-line': 'rgba(255,255,255,.12)',
+    },
+    swatches: [['Chrome','#16181D'],['Page','#FFFFFF'],['Text','#E7E9EE'],['Accent','#7C5CFF']],
+  },
+  {
+    id: 'fresh-mint', name: 'Fresh Mint', tagColor: '#10B981',
+    vibe: 'Optimistic, friendly, “free” — airy and welcoming, humanist type. Sells the free-and-easy promise; less corporate.',
+    vars: {
+      '--font': "'Plus Jakarta Sans', sans-serif", '--display': "'Plus Jakarta Sans', sans-serif",
+      '--canvas': '#F1FAF5', '--canvas-hi': '#FBFEFC', '--page': '#FFFFFF',
+      '--chrome': '#FFFFFF', '--chrome-ink': '#18211C', '--muted': '#6B7B72',
+      '--accent': '#10B981', '--accent-glow': 'rgba(16,185,129,.35)', '--accent-tint': 'rgba(16,185,129,.08)',
+      '--line': '#E0EFE8', '--search-bg': '#F2FAF6', '--kbd-bg': '#FFFFFF', '--panel': '#FAFEFC',
+      '--page-shadow': '0 12px 34px rgba(16,80,55,.12)',
+      '--toolbar-bg': '#10231B', '--toolbar-ink': '#fff', '--toolbar-line': 'rgba(255,255,255,.14)',
+    },
+    swatches: [['Canvas','#F1FAF5'],['Page','#FFFFFF'],['Ink','#18211C'],['Accent','#10B981']],
+  },
+  {
+    id: 'editorial', name: 'Editorial Bold', tagColor: '#FF6B5B',
+    vibe: 'Distinctive, brand-forward, memorable — magazine-like. Warm paper, a characterful serif for brand, coral accent. More “brand” than “tool”.',
+    vars: {
+      '--font': "'Inter', sans-serif", '--display': "'Fraunces', serif",
+      '--canvas': '#FAF8F4', '--canvas-hi': '#FFFEFB', '--page': '#FFFFFF',
+      '--chrome': '#FAF8F4', '--chrome-ink': '#1A1714', '--muted': '#8a8077',
+      '--accent': '#FF6B5B', '--accent-glow': 'rgba(255,107,91,.35)', '--accent-tint': 'rgba(255,107,91,.09)',
+      '--line': '#ECE5DB', '--search-bg': '#FFFFFF', '--kbd-bg': '#FFFFFF', '--panel': '#FCFAF6',
+      '--page-shadow': '0 14px 38px rgba(60,40,20,.13)',
+      '--toolbar-bg': '#211C18', '--toolbar-ink': '#fff', '--toolbar-line': 'rgba(255,255,255,.14)',
+    },
+    swatches: [['Canvas','#FAF8F4'],['Page','#FFFFFF'],['Ink','#1A1714'],['Accent','#FF6B5B']],
+  },
+];
+
+function mock(t) {
+  const styleVars = Object.entries(t.vars).map(([k,v]) => `${k}:${v}`).join(';');
+  const sw = t.swatches.map(([n,c]) =>
+    `<div class="sw"><span class="chip" style="background:${c}"></span><b>${n}</b> ${c}</div>`).join('');
+  return `
+  <div class="section">
+    <div class="label-row">
+      <span class="tag" style="background:${t.tagColor}">${t.name}</span>
+      <h2>${t.name}</h2>
+    </div>
+    <div class="vibe">${t.vibe}</div>
+    <div class="swatches">${sw}</div>
+    <div class="mock" style="${styleVars}">
+      <div class="bar">
+        <div class="brand"><span class="dot">◷</span> pdfly</div>
+        <div class="search">Search or run a command… <kbd>⌘K</kbd></div>
+        <div class="actions">
+          <button class="icon-btn">↶</button>
+          <button class="icon-btn">↷</button>
+          <button class="export">Export PDF</button>
+        </div>
+      </div>
+      <div class="body">
+        <div class="stage">
+          <div class="sheet">
+            <div class="doc-title">INVOICE</div>
+            <div class="doc-sub">Acme Studio · No. 1043 · May 2026</div>
+            <div class="rule"></div>
+            <div class="line m"></div>
+            <div class="line s"></div>
+            <div class="line m"></div>
+            <div class="selected">
+              Total due: $1,200.00
+              <span class="handle tl"></span><span class="handle tr"></span>
+              <span class="handle bl"></span><span class="handle br"></span>
+              <div class="float-toolbar">
+                <span class="ft" style="font-weight:800">B</span>
+                <span class="ft" style="font-style:italic">I</span>
+                <span class="sep"></span>
+                <span class="ft">18 ▾</span>
+                <span class="sep"></span>
+                <span class="swatch"></span>
+              </div>
+            </div>
+            <div class="doc-foot">
+              <div class="line s"></div>
+            </div>
+          </div>
+          <div class="meta">Page 1 / 3 · 120%</div>
+        </div>
+        <div class="assistant">
+          <div class="ai">✦</div>
+          <div class="vlabel">Assistant</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+document.getElementById('gallery').innerHTML = themes.map(mock).join('');
+</script>
+</body>
+</html>
