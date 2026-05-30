@@ -100,25 +100,56 @@ export default function App() {
   // Click existing PDF text -> cover it and drop a matching editable box on top.
   function editExisting(pageIndex, item) {
     resolvePending()
+    const page = pages.find((p) => p.pageIndex === pageIndex)
+
+    // Grab the whole contiguous run-cluster on the clicked line (PDF.js often
+    // splits a phrase/cell into several runs), stopping at large gaps so we
+    // don't bleed into the next table column.
+    const line = (page?.textItems || [])
+      .filter((t) => Math.abs(t.y - item.y) < item.height * 0.6)
+      .sort((a, b) => a.x - b.x)
+    let cluster = [item]
+    const idx = line.findIndex((t) => t.x === item.x && t.y === item.y && t.str === item.str)
+    if (idx !== -1) {
+      const gapMax = item.fontSize * 1.6
+      let lo = idx
+      let hi = idx
+      while (lo > 0 && line[lo].x - (line[lo - 1].x + line[lo - 1].width) <= gapMax) lo--
+      while (hi < line.length - 1 && line[hi + 1].x - (line[hi].x + line[hi].width) <= gapMax) hi++
+      cluster = line.slice(lo, hi + 1)
+    }
+
+    // join runs: a visible gap -> space, a tiny gap (split mid-word) -> no space
+    let text = ''
+    cluster.forEach((t, k) => {
+      if (k > 0) {
+        const prev = cluster[k - 1]
+        if (t.x - (prev.x + prev.width) > t.fontSize * 0.28) text += ' '
+      }
+      text += t.str
+    })
+
     snapshot()
     const pad = 1
-    const whiteout = {
+    const whiteouts = cluster.map((t) => ({
       id: newId(),
       type: 'whiteout',
       pageIndex,
-      x: item.x - pad,
-      y: item.y - pad,
-      w: item.width + pad * 2,
-      h: item.height + pad * 2,
+      x: t.x - pad,
+      y: t.y - pad,
+      w: t.width + pad * 2,
+      h: t.height + pad * 2,
       color: '#ffffff',
-    }
-    const text = {
+    }))
+    const minX = Math.min(...cluster.map((t) => t.x))
+    const minY = Math.min(...cluster.map((t) => t.y))
+    const textObj = {
       id: newId(),
       type: 'text',
       pageIndex,
-      x: item.x,
-      y: item.y,
-      text: item.str,
+      x: minX,
+      y: minY,
+      text,
       fontSize: item.fontSize,
       color: '#111111',
       bold: false,
@@ -126,13 +157,13 @@ export default function App() {
       bgColor: 'none',
       font: item.fontCategory || 'sans',
     }
-    setObjects((prev) => [...prev, whiteout, text])
-    setSelectedId(text.id)
+    setObjects((prev) => [...prev, ...whiteouts, textObj])
+    setSelectedId(textObj.id)
     setSelectedRegion(null)
     pendingEdit.current = {
-      textId: text.id,
-      whiteoutIds: [whiteout.id],
-      originalText: item.str,
+      textId: textObj.id,
+      whiteoutIds: whiteouts.map((w) => w.id),
+      originalText: text,
       originalFontSize: item.fontSize,
     }
   }
