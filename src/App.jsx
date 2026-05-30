@@ -24,6 +24,7 @@ export default function App() {
   const [selectMode, setSelectMode] = useState(false)
   const replaceTarget = useRef(null)
   const replaceInputRef = useRef(null)
+  const pendingEdit = useRef(null) // a click-to-edit that's reverted if left unchanged
 
   // Undo / redo history of the objects array.
   const past = useRef([])
@@ -97,6 +98,7 @@ export default function App() {
 
   // Click existing PDF text -> cover it and drop a matching editable box on top.
   function editExisting(pageIndex, item) {
+    resolvePending()
     snapshot()
     const pad = 1
     const whiteout = {
@@ -124,6 +126,13 @@ export default function App() {
     }
     setObjects((prev) => [...prev, whiteout, text])
     setSelectedId(text.id)
+    setSelectedRegion(null)
+    pendingEdit.current = {
+      textId: text.id,
+      whiteoutId: whiteout.id,
+      originalText: item.str,
+      originalFontSize: item.fontSize,
+    }
   }
 
   // Place an image/signature, scaled to a sensible default width, on page 1.
@@ -154,6 +163,7 @@ export default function App() {
   // Drag-select a region of original text -> grab every run inside it as one
   // editable, multi-line block (e.g. a full address), and cover the original.
   function areaSelect(pageIndex, rect) {
+    resolvePending()
     const page = pages.find((p) => p.pageIndex === pageIndex)
     setSelectMode(false)
     if (!page) return
@@ -253,12 +263,34 @@ export default function App() {
     reader.readAsDataURL(file)
   }
 
+  // If a click-to-edit was left untouched (same text, default styling), undo it
+  // so merely clicking text never changes how it looks.
+  function resolvePending() {
+    const p = pendingEdit.current
+    if (!p) return
+    pendingEdit.current = null
+    setObjects((prev) => {
+      const t = prev.find((o) => o.id === p.textId)
+      if (!t) return prev
+      const unchanged =
+        t.text === p.originalText &&
+        !t.bold &&
+        !t.italic &&
+        t.color === '#111111' &&
+        (!t.bgColor || t.bgColor === 'none') &&
+        Math.round(t.fontSize) === Math.round(p.originalFontSize)
+      return unchanged ? prev.filter((o) => o.id !== p.textId && o.id !== p.whiteoutId) : prev
+    })
+  }
+
   // selecting an object clears a selected image region and vice-versa
   function selectObject(id) {
+    if (pendingEdit.current && id !== pendingEdit.current.textId) resolvePending()
     setSelectedId(id)
     if (id !== null) setSelectedRegion(null)
   }
   function selectRegion(r) {
+    if (pendingEdit.current) resolvePending()
     setSelectedRegion(r)
     if (r) setSelectedId(null)
   }

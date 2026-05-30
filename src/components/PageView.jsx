@@ -31,6 +31,14 @@ export default function PageView({
   const [marquee, setMarquee] = useState(null)
   const start = useRef(null)
 
+  // a text run is "consumed" once a whiteout covers it (edited/replaced/grabbed)
+  const whiteouts = objects.filter((o) => o.type === 'whiteout')
+  const isCovered = (it) => {
+    const cx = it.x + it.width / 2
+    const cy = it.y + it.height / 2
+    return whiteouts.some((w) => cx >= w.x && cx <= w.x + w.w && cy >= w.y && cy <= w.y + w.h)
+  }
+
   function onPageDown(e) {
     onSelect(null)
     onSelectRegion(null)
@@ -111,9 +119,11 @@ export default function PageView({
           </div>
         )}
 
-        {/* Clickable existing-text layer (rendered after images so text wins overlap) */}
+        {/* Clickable existing-text layer (rendered after images so text wins overlap).
+            Skip runs already covered by a whiteout so old text can't be re-grabbed. */}
         {!selectMode &&
-          page.textItems?.map((item, i) => (
+          page.textItems?.map((item, i) =>
+            isCovered(item) ? null : (
           <span
             key={`t${i}`}
             className="text-hit"
@@ -125,7 +135,8 @@ export default function PageView({
               onEditExisting(page.pageIndex, item)
             }}
           />
-        ))}
+            ),
+          )}
 
         {/* Whiteout covers (rendered before text so text sits on top) */}
         {objects
