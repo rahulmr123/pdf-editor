@@ -22,9 +22,7 @@ export default function PageView({
   onReplaceRegion,
 }) {
   const regionOnThisPage =
-    imageMode && selectedRegion && selectedRegion.pageIndex === page.pageIndex
-      ? selectedRegion
-      : null
+    selectedRegion && selectedRegion.pageIndex === page.pageIndex ? selectedRegion : null
   return (
     <div className="page-wrap">
       <div
@@ -32,29 +30,29 @@ export default function PageView({
         style={{ width: page.width, height: page.height }}
         onPointerDown={() => {
           onSelect(null)
-          if (imageMode) onSelectRegion(null)
+          onSelectRegion(null)
         }}
       >
         <img className="page-bg" src={page.dataUrl} draggable={false} alt="" />
 
-        {/* Image-edit mode: detected image regions you can remove/replace */}
-        {imageMode &&
-          page.imageRegions?.map((rg, i) => {
-            const on = selectedRegion?.pageIndex === page.pageIndex && selectedRegion.index === i
-            return (
-              <div
-                key={`img${i}`}
-                className={`img-region ${on ? 'on' : ''}`}
-                style={{ left: rg.x, top: rg.y, width: rg.width, height: rg.height }}
-                title="Click to remove or replace this image"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSelectRegion({ pageIndex: page.pageIndex, index: i, ...rg })
-                }}
-              />
-            )
-          })}
+        {/* Detected images: click to remove/replace (always clickable, like text).
+            'show-all' outlines every image when the Images toggle is on. */}
+        {page.imageRegions?.map((rg, i) => {
+          const on = selectedRegion?.pageIndex === page.pageIndex && selectedRegion.index === i
+          return (
+            <div
+              key={`img${i}`}
+              className={`img-region ${imageMode ? 'show-all' : ''} ${on ? 'on' : ''}`}
+              style={{ left: rg.x, top: rg.y, width: rg.width, height: rg.height }}
+              title="Click to remove or replace this image"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelectRegion({ pageIndex: page.pageIndex, index: i, ...rg })
+              }}
+            />
+          )
+        })}
 
         {regionOnThisPage && (
           <div
@@ -74,9 +72,8 @@ export default function PageView({
           </div>
         )}
 
-        {/* Clickable existing-text layer (transparent hit targets) */}
-        {!imageMode &&
-          page.textItems?.map((item, i) => (
+        {/* Clickable existing-text layer (rendered after images so text wins overlap) */}
+        {page.textItems?.map((item, i) => (
           <span
             key={`t${i}`}
             className="text-hit"

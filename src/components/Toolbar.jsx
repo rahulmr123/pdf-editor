@@ -30,7 +30,7 @@ export default function Toolbar({
         <button
           className={`btn ${imageMode ? 'active' : ''}`}
           onClick={onToggleImageMode}
-          title="Detect, remove or replace images in the PDF"
+          title="Highlight all images on the page"
         >
           🖼 Images
         </button>
@@ -50,8 +50,8 @@ export default function Toolbar({
         <button className="btn" onClick={onRedo} disabled={!canRedo} title="Redo (⇧⌘Z)">↷</button>
         <span className="hint">
           {imageMode
-            ? 'Click a highlighted image to remove or replace it'
-            : 'Tip: click any text on the page to edit it'}
+            ? 'All images highlighted — click one to remove or replace'
+            : 'Tip: click any text or image on the page to edit it'}
         </span>
       </div>
 

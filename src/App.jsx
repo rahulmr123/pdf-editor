@@ -152,6 +152,16 @@ export default function App() {
     reader.readAsDataURL(file)
   }
 
+  // selecting an object clears a selected image region and vice-versa
+  function selectObject(id) {
+    setSelectedId(id)
+    if (id !== null) setSelectedRegion(null)
+  }
+  function selectRegion(r) {
+    setSelectedRegion(r)
+    if (r) setSelectedId(null)
+  }
+
   function toggleImageMode() {
     setImageMode((m) => !m)
     setSelectedRegion(null)
@@ -312,7 +322,7 @@ export default function App() {
             page={page}
             objects={objects.filter((o) => o.pageIndex === page.pageIndex)}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={selectObject}
             onChange={updateObject}
             onDelete={deleteObject}
             onEditExisting={editExisting}
@@ -321,7 +331,7 @@ export default function App() {
             onGestureStart={snapshot}
             imageMode={imageMode}
             selectedRegion={selectedRegion}
-            onSelectRegion={setSelectedRegion}
+            onSelectRegion={selectRegion}
             onRemoveRegion={removeRegion}
             onReplaceRegion={replaceRegion}
           />
