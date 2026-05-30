@@ -43,12 +43,16 @@ export default function ImageBox({ obj, selected, onSelect, onChange, onDelete, 
       return
     }
 
-    // resize, locking aspect ratio; the opposite corner stays anchored
+    // resize, locking aspect ratio; driven by whichever axis you drag more,
+    // with the opposite corner anchored
     const right = g.corner.includes('r')
     const bottom = g.corner.includes('b')
-    let newW = right ? g.ow + dx : g.ow - dx
-    newW = Math.max(24, newW)
-    let newH = newW / g.ratio
+    const aW = right ? dx : -dx
+    const aH = bottom ? dy : -dy
+    const delta = Math.abs(aW) > Math.abs(aH) ? aW / g.ow : aH / g.oh
+    const scale = Math.max(0.05, 1 + delta)
+    const newW = Math.max(24, g.ow * scale)
+    const newH = newW / g.ratio
     const newX = right ? g.ox : g.ox + (g.ow - newW)
     const newY = bottom ? g.oy : g.oy + (g.oh - newH)
     onChange(obj.id, { x: newX, y: newY, w: newW, h: newH })

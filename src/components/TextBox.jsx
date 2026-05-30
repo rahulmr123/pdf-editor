@@ -40,11 +40,14 @@ export default function TextBox({ obj, selected, onSelect, onChange, onDragStart
       return
     }
 
-    // resize scales the font; the opposite corner stays anchored
+    // resize scales the font, driven by whichever axis you drag more;
+    // the opposite corner stays anchored
     const right = g.corner.includes('r')
     const bottom = g.corner.includes('b')
-    const newW = Math.max(12, right ? g.sw + dx : g.sw - dx)
-    const newFont = Math.min(400, Math.max(6, g.sf * (newW / g.sw)))
+    const aW = right ? dx : -dx
+    const aH = bottom ? dy : -dy
+    const delta = Math.abs(aW) > Math.abs(aH) ? aW / g.sw : aH / g.sh
+    const newFont = Math.min(400, Math.max(6, g.sf * Math.max(0.05, 1 + delta)))
     const scale = newFont / g.sf
     onChange(obj.id, {
       fontSize: newFont,
