@@ -1,5 +1,6 @@
 import TextBox from './TextBox.jsx'
 import ImageBox from './ImageBox.jsx'
+import TextPopup from './TextPopup.jsx'
 
 // One PDF page: the rendered raster as a locked background, a clickable text
 // layer for editing existing text in place, and the editable object overlay.
@@ -71,7 +72,7 @@ export default function PageView({
             />
           ))}
 
-        {/* Editable text objects */}
+        {/* Text objects (display + drag; edited via the popup) */}
         {objects
           .filter((o) => o.type === 'text')
           .map((obj) => (
@@ -81,11 +82,25 @@ export default function PageView({
               selected={obj.id === selectedId}
               onSelect={onSelect}
               onChange={onChange}
-              onDelete={onDelete}
               onDragStart={onDragStart}
-              onEditStart={onEditStart}
             />
           ))}
+
+        {/* Floating editor for the selected text object on this page */}
+        {(() => {
+          const sel = objects.find((o) => o.type === 'text' && o.id === selectedId)
+          if (!sel) return null
+          return (
+            <TextPopup
+              obj={sel}
+              pageWidth={page.width}
+              pageHeight={page.height}
+              onChange={onChange}
+              onDelete={onDelete}
+              onEditStart={onEditStart}
+            />
+          )
+        })()}
       </div>
       <div className="page-label">Page {page.pageIndex + 1}</div>
     </div>

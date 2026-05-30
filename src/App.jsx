@@ -81,7 +81,8 @@ export default function App() {
       text: 'New text',
       fontSize: 18,
       color: '#111111',
-      autoEdit: true,
+      bold: false,
+      italic: false,
     }
     setObjects((prev) => [...prev, obj])
     setSelectedId(obj.id)
@@ -110,7 +111,8 @@ export default function App() {
       text: item.str,
       fontSize: item.fontSize,
       color: '#111111',
-      autoEdit: true,
+      bold: false,
+      italic: false,
     }
     setObjects((prev) => [...prev, whiteout, text])
     setSelectedId(text.id)

@@ -39,29 +39,7 @@ export default function Toolbar({
         <span className="sep-v" />
         <button className="btn" onClick={onUndo} disabled={!canUndo} title="Undo (⌘Z)">↶</button>
         <button className="btn" onClick={onRedo} disabled={!canRedo} title="Redo (⇧⌘Z)">↷</button>
-
-        {selected?.type === 'text' && (
-          <div className="inspector">
-            <label>
-              Size
-              <input
-                type="number"
-                min="6"
-                max="200"
-                value={Math.round(selected.fontSize)}
-                onChange={(e) => onChange(selected.id, { fontSize: Number(e.target.value) })}
-              />
-            </label>
-            <label>
-              Color
-              <input
-                type="color"
-                value={selected.color}
-                onChange={(e) => onChange(selected.id, { color: e.target.value })}
-              />
-            </label>
-          </div>
-        )}
+        <span className="hint">Tip: click any text on the page to edit it</span>
       </div>
 
       <div className="actions">

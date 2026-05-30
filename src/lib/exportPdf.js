@@ -10,7 +10,14 @@ function hexToRgb(hex) {
 // stays pixel-perfect and our edits are stamped on top.
 export async function exportPdf(originalArrayBuffer, pages, objects) {
   const pdfDoc = await PDFDocument.load(originalArrayBuffer.slice(0))
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+  const fonts = {
+    normal: await pdfDoc.embedFont(StandardFonts.Helvetica),
+    bold: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
+    italic: await pdfDoc.embedFont(StandardFonts.HelveticaOblique),
+    bolditalic: await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique),
+  }
+  const fontFor = (o) =>
+    fonts[`${o.bold ? 'bold' : ''}${o.italic ? 'italic' : ''}` || 'normal']
   const docPages = pdfDoc.getPages()
 
   // Whiteouts first, so text drawn afterwards sits on top of the cover.
@@ -65,6 +72,7 @@ export async function exportPdf(originalArrayBuffer, pages, objects) {
     const x = obj.x / scale
     const lineHeight = size * 1.2
     const [r, g, b] = hexToRgb(obj.color)
+    const font = fontFor(obj)
 
     obj.text.split('\n').forEach((line, i) => {
       const topY = obj.y / scale + i * lineHeight
