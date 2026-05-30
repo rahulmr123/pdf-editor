@@ -1,6 +1,11 @@
 import { useRef } from 'react'
 
 const CORNERS = ['tl', 'tr', 'bl', 'br']
+const FAMILIES = {
+  serif: 'Georgia, "Times New Roman", Times, serif',
+  sans: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+  mono: '"Courier New", Courier, monospace',
+}
 
 // Display + drag + corner-resize (scales font size). Text is edited in TextPopup.
 export default function TextBox({ obj, selected, onSelect, onChange, onDragStart }) {
@@ -72,6 +77,7 @@ export default function TextBox({ obj, selected, onSelect, onChange, onDragStart
         top: obj.y,
         fontSize: obj.fontSize,
         color: obj.color,
+        fontFamily: FAMILIES[obj.font] || FAMILIES.sans,
         fontWeight: obj.bold ? 700 : 400,
         fontStyle: obj.italic ? 'italic' : 'normal',
         background: obj.bgColor && obj.bgColor !== 'none' ? obj.bgColor : 'transparent',

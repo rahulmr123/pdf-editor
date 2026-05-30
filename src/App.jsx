@@ -91,6 +91,7 @@ export default function App() {
       bold: false,
       italic: false,
       bgColor: 'none',
+      font: 'sans',
     }
     setObjects((prev) => [...prev, obj])
     setSelectedId(obj.id)
@@ -123,6 +124,7 @@ export default function App() {
       bold: false,
       italic: false,
       bgColor: 'none',
+      font: item.fontCategory || 'sans',
     }
     setObjects((prev) => [...prev, whiteout, text])
     setSelectedId(text.id)
@@ -232,6 +234,7 @@ export default function App() {
       bold: false,
       italic: false,
       bgColor: 'none',
+      font: sorted[0].fontCategory || 'sans',
     }
     setObjects((prev) => [...prev, ...whiteouts, textObj])
     setSelectedId(textObj.id)

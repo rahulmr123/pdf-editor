@@ -10,14 +10,25 @@ function hexToRgb(hex) {
 // stays pixel-perfect and our edits are stamped on top.
 export async function exportPdf(originalArrayBuffer, pages, objects) {
   const pdfDoc = await PDFDocument.load(originalArrayBuffer.slice(0))
-  const fonts = {
-    normal: await pdfDoc.embedFont(StandardFonts.Helvetica),
-    bold: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
-    italic: await pdfDoc.embedFont(StandardFonts.HelveticaOblique),
-    bolditalic: await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique),
+
+  // Match the original font family: serif -> Times, mono -> Courier, else Helvetica.
+  const F = StandardFonts
+  const families = {
+    sans: { normal: F.Helvetica, bold: F.HelveticaBold, italic: F.HelveticaOblique, bolditalic: F.HelveticaBoldOblique },
+    serif: { normal: F.TimesRoman, bold: F.TimesRomanBold, italic: F.TimesRomanItalic, bolditalic: F.TimesRomanBoldItalic },
+    mono: { normal: F.Courier, bold: F.CourierBold, italic: F.CourierOblique, bolditalic: F.CourierBoldOblique },
   }
-  const fontFor = (o) =>
-    fonts[`${o.bold ? 'bold' : ''}${o.italic ? 'italic' : ''}` || 'normal']
+  const embedded = {}
+  for (const family of Object.values(families)) {
+    for (const std of Object.values(family)) {
+      if (!embedded[std]) embedded[std] = await pdfDoc.embedFont(std)
+    }
+  }
+  const fontFor = (o) => {
+    const fam = families[o.font] || families.sans
+    const variant = o.bold && o.italic ? 'bolditalic' : o.bold ? 'bold' : o.italic ? 'italic' : 'normal'
+    return embedded[fam[variant]]
+  }
   const docPages = pdfDoc.getPages()
 
   // Whiteouts first, so text drawn afterwards sits on top of the cover.

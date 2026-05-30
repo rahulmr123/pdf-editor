@@ -75,6 +75,20 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
       if (!item.str || !item.str.trim()) continue
       const tx = pdfjsLib.Util.transform(viewport.transform, item.transform)
       const fontSize = Math.hypot(tx[2], tx[3])
+
+      // classify the run's font family so edits can match it
+      const fam = (textContent.styles?.[item.fontName]?.fontFamily || '').toLowerCase()
+      let fontCategory = 'sans'
+      if (fam.includes('mono') || fam.includes('courier')) fontCategory = 'mono'
+      else if (fam.includes('sans')) fontCategory = 'sans'
+      else if (
+        fam.includes('serif') ||
+        fam.includes('times') ||
+        fam.includes('roman') ||
+        fam.includes('georgia')
+      )
+        fontCategory = 'serif'
+
       textItems.push({
         str: item.str,
         x: tx[4], // displayed px, left
@@ -82,6 +96,7 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
         width: item.width * scale,
         height: fontSize,
         fontSize,
+        fontCategory,
       })
     }
 
