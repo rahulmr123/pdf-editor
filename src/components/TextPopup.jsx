@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react'
 
 const POPUP_W = 264
-const POPUP_H = 120
+const POPUP_H = 162
 
-// Floating editor for the selected text object: content + B/I + size + color.
+const hasFill = (o) => o.bgColor && o.bgColor !== 'none'
+
+// Floating editor for the selected text object: content + B/I + size + colors.
 export default function TextPopup({ obj, pageWidth, pageHeight, onChange, onDelete, onEditStart }) {
   const taRef = useRef(null)
 
@@ -30,6 +32,7 @@ export default function TextPopup({ obj, pageWidth, pageHeight, onChange, onDele
         onFocus={onEditStart}
         onChange={(e) => onChange(obj.id, { text: e.target.value })}
       />
+
       <div className="tp-row">
         <button
           className={`tp-btn ${obj.bold ? 'on' : ''}`}
@@ -57,16 +60,35 @@ export default function TextPopup({ obj, pageWidth, pageHeight, onChange, onDele
           onChange={(e) => onChange(obj.id, { fontSize: Number(e.target.value) })}
           title="Font size"
         />
+        <span className="tp-sep" />
+        <button className="tp-btn tp-del" onClick={() => onDelete(obj.id)} title="Delete">
+          ✕
+        </button>
+      </div>
+
+      <div className="tp-row tp-colors">
+        <span className="tp-label">Text</span>
         <input
           className="tp-color"
           type="color"
           value={obj.color}
           onChange={(e) => onChange(obj.id, { color: e.target.value })}
-          title="Color"
+          title="Text color"
         />
-        <span className="tp-sep" />
-        <button className="tp-btn tp-del" onClick={() => onDelete(obj.id)} title="Delete">
-          ✕
+        <span className="tp-label">Fill</span>
+        <input
+          className="tp-color"
+          type="color"
+          value={hasFill(obj) ? obj.bgColor : '#ffe600'}
+          onChange={(e) => onChange(obj.id, { bgColor: e.target.value })}
+          title="Background fill"
+        />
+        <button
+          className={`tp-btn tp-nofill ${hasFill(obj) ? '' : 'on'}`}
+          onClick={() => onChange(obj.id, { bgColor: 'none' })}
+          title="No fill"
+        >
+          ⌀
         </button>
       </div>
     </div>

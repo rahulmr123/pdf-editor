@@ -73,8 +73,25 @@ export async function exportPdf(originalArrayBuffer, pages, objects) {
     const lineHeight = size * 1.2
     const [r, g, b] = hexToRgb(obj.color)
     const font = fontFor(obj)
+    const lines = obj.text.split('\n')
 
-    obj.text.split('\n').forEach((line, i) => {
+    // background fill behind the text (matches the on-screen padding)
+    if (obj.bgColor && obj.bgColor !== 'none') {
+      const padX = 3 / scale
+      const padY = 2 / scale
+      const maxW = Math.max(...lines.map((l) => font.widthOfTextAtSize(l, size)))
+      const blockH = lines.length * lineHeight
+      const [fr, fg, fb] = hexToRgb(obj.bgColor)
+      page.drawRectangle({
+        x: x - padX,
+        y: pdfPageHeight - obj.y / scale - blockH - padY,
+        width: maxW + 2 * padX,
+        height: blockH + 2 * padY,
+        color: rgb(fr / 255, fg / 255, fb / 255),
+      })
+    }
+
+    lines.forEach((line, i) => {
       const topY = obj.y / scale + i * lineHeight
       const baselineY = pdfPageHeight - topY - size
       page.drawText(line, {

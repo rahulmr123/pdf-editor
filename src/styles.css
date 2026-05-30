@@ -211,7 +211,7 @@ body {
 }
 .textbox.selected {
   border-color: var(--accent);
-  background: var(--accent-tint);
+  box-shadow: 0 0 0 2px var(--accent-tint);
 }
 .textbox textarea {
   border: none;
@@ -284,6 +284,9 @@ body {
   width: 30px; height: 30px; padding: 0;
   border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
 }
+.tp-colors { gap: 8px; }
+.tp-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.tp-nofill { margin-left: auto; font-size: 15px; }
 
 /* ---------- Image / signature objects ---------- */
 .imagebox {

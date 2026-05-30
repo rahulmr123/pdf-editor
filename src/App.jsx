@@ -83,6 +83,7 @@ export default function App() {
       color: '#111111',
       bold: false,
       italic: false,
+      bgColor: 'none',
     }
     setObjects((prev) => [...prev, obj])
     setSelectedId(obj.id)
@@ -113,6 +114,7 @@ export default function App() {
       color: '#111111',
       bold: false,
       italic: false,
+      bgColor: 'none',
     }
     setObjects((prev) => [...prev, whiteout, text])
     setSelectedId(text.id)

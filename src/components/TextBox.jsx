@@ -39,6 +39,7 @@ export default function TextBox({ obj, selected, onSelect, onChange, onDragStart
         color: obj.color,
         fontWeight: obj.bold ? 700 : 400,
         fontStyle: obj.italic ? 'italic' : 'normal',
+        background: obj.bgColor && obj.bgColor !== 'none' ? obj.bgColor : 'transparent',
       }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
