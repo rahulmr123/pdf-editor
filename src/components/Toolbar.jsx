@@ -23,6 +23,8 @@ export default function Toolbar({
   onRedo,
   canUndo,
   canRedo,
+  showPages,
+  onTogglePages,
   busy,
 }) {
   const fileRef = useRef(null)
@@ -70,6 +72,16 @@ export default function Toolbar({
         <div className="tool-group">
           <button className="tbtn icon" onClick={onUndo} disabled={!canUndo} title="Undo (⌘Z)">↶</button>
           <button className="tbtn icon" onClick={onRedo} disabled={!canRedo} title="Redo (⇧⌘Z)">↷</button>
+        </div>
+
+        <div className="tool-group">
+          <button
+            className={`tbtn ${showPages ? 'active' : ''}`}
+            onClick={onTogglePages}
+            title="Show the Pages panel to reorder or delete pages"
+          >
+            ▤ Pages
+          </button>
         </div>
 
         <div className="right">

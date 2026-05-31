@@ -5,6 +5,7 @@ import { applyCommand } from './lib/commands.js'
 import UploadZone from './components/UploadZone.jsx'
 import Toolbar from './components/Toolbar.jsx'
 import PageView from './components/PageView.jsx'
+import PagesPanel from './components/PagesPanel.jsx'
 import SignaturePad from './components/SignaturePad.jsx'
 import { DOC_FONTS, docFontCss, registerDocFonts } from './lib/docfonts.js'
 
@@ -26,6 +27,8 @@ export default function App() {
   const [selectMode, setSelectMode] = useState(false)
   const [docFont, setDocFont] = useState('') // applied document-wide font
   const [activePage, setActivePage] = useState(0) // page nearest the viewport center
+  const [pageOrder, setPageOrder] = useState([]) // displayed sequence of source page indices
+  const [showPages, setShowPages] = useState(true) // Pages panel visibility
   const canvasRef = useRef(null)
   const replaceTarget = useRef(null)
   const replaceInputRef = useRef(null)
@@ -57,6 +60,11 @@ export default function App() {
   const selected = useMemo(
     () => objects.find((o) => o.id === selectedId) || null,
     [objects, selectedId],
+  )
+
+  const pageById = useMemo(
+    () => new Map(pages.map((p) => [p.pageIndex, p])),
+    [pages],
   )
 
   function snapshot() {
@@ -106,9 +114,10 @@ export default function App() {
       setBuffer(arrayBuffer)
       setFileName(file.name)
       setPages(rendered)
+      setPageOrder(rendered.map((p) => p.pageIndex))
       setObjects([])
       setSelectedId(null)
-      setActivePage(0)
+      setActivePage(rendered[0]?.pageIndex ?? 0)
       past.current = []
       future.current = []
     } catch (e) {
@@ -134,8 +143,35 @@ export default function App() {
         best = i
       }
     })
-    const idx = pages[best]?.pageIndex
+    // DOM order follows pageOrder, so map the nearest wrap back to its src index.
+    const idx = pageOrder[best]
     if (idx != null && idx !== activePage) setActivePage(idx)
+  }
+
+  // Scroll a page into view (used by the Pages panel) and make it active.
+  function goToPage(srcIndex) {
+    setActivePage(srcIndex)
+    document.getElementById(`pw-${srcIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  // Reorder pages: move the page at `from` (display position) to `to`.
+  function movePage(from, to) {
+    if (from === to) return
+    setPageOrder((order) => {
+      const next = [...order]
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
+      return next
+    })
+  }
+
+  // Drop a page from the document (kept in `pages`, just excluded from the
+  // output and the view). Its overlay objects are dropped from export too.
+  function deletePage(srcIndex) {
+    if (pageOrder.length <= 1) return // never delete the last remaining page
+    const next = pageOrder.filter((s) => s !== srcIndex)
+    setPageOrder(next)
+    if (srcIndex === activePage) setActivePage(next[0] ?? 0)
   }
 
   function addText(pageIndex = activePage, x = 60, y = 60) {
@@ -372,7 +408,7 @@ export default function App() {
   async function handleExport() {
     setBusy(true)
     try {
-      const bytes = await exportPdf(buffer, pages, objects, fontsRef.current)
+      const bytes = await exportPdf(buffer, pages, objects, fontsRef.current, pageOrder)
       const blob = new Blob([bytes], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -391,6 +427,7 @@ export default function App() {
   function reset() {
     setBuffer(null)
     setPages([])
+    setPageOrder([])
     setObjects([])
     setSelectedId(null)
     setFileName('')
@@ -452,35 +489,54 @@ export default function App() {
         onRedo={redo}
         canUndo={past.current.length > 0}
         canRedo={future.current.length > 0}
+        showPages={showPages}
+        onTogglePages={() => setShowPages((s) => !s)}
         busy={busy}
       />
-      <div className="canvas-area" data-theme={viewTheme} ref={canvasRef} onScroll={onCanvasScroll}>
-        {pages.map((page) => (
-          <PageView
-            key={page.pageIndex}
-            page={page}
-            isActive={page.pageIndex === activePage}
-            objects={objects.filter((o) => o.pageIndex === page.pageIndex)}
-            selectedId={selectedId}
-            onSelect={selectObject}
-            onChange={updateObject}
-            onDelete={deleteObject}
-            onEditExisting={editExisting}
-            onDragStart={snapshot}
-            onEditStart={snapshot}
-            onGestureStart={snapshot}
-            imageMode={imageMode}
-            selectedRegion={selectedRegion}
-            onSelectRegion={selectRegion}
-            onRemoveRegion={removeRegion}
-            onReplaceRegion={replaceRegion}
-            onLiftRegion={liftRegion}
-            onReplaceImage={replaceImage}
-            selectMode={selectMode}
-            onAreaSelect={areaSelect}
-            onActivate={setActivePage}
+      <div className="workspace">
+        {showPages && (
+          <PagesPanel
+            pageOrder={pageOrder}
+            pageById={pageById}
+            activePage={activePage}
+            onGoToPage={goToPage}
+            onMovePage={movePage}
+            onDeletePage={deletePage}
           />
-        ))}
+        )}
+        <div className="canvas-area" data-theme={viewTheme} ref={canvasRef} onScroll={onCanvasScroll}>
+          {pageOrder.map((srcIndex, pos) => {
+            const page = pageById.get(srcIndex)
+            if (!page) return null
+            return (
+              <PageView
+                key={srcIndex}
+                page={page}
+                pageNumber={pos + 1}
+                isActive={srcIndex === activePage}
+                objects={objects.filter((o) => o.pageIndex === srcIndex)}
+                selectedId={selectedId}
+                onSelect={selectObject}
+                onChange={updateObject}
+                onDelete={deleteObject}
+                onEditExisting={editExisting}
+                onDragStart={snapshot}
+                onEditStart={snapshot}
+                onGestureStart={snapshot}
+                imageMode={imageMode}
+                selectedRegion={selectedRegion}
+                onSelectRegion={selectRegion}
+                onRemoveRegion={removeRegion}
+                onReplaceRegion={replaceRegion}
+                onLiftRegion={liftRegion}
+                onReplaceImage={replaceImage}
+                selectMode={selectMode}
+                onAreaSelect={areaSelect}
+                onActivate={setActivePage}
+              />
+            )
+          })}
+        </div>
       </div>
 
       <input

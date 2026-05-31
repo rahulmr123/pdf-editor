@@ -10,9 +10,23 @@ function hexToRgb(hex) {
 
 // Flatten the editor's overlay objects onto the ORIGINAL PDF, so the source
 // stays pixel-perfect and our edits are stamped on top.
-export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {}) {
-  const pdfDoc = await PDFDocument.load(originalArrayBuffer.slice(0))
+//
+// `pageOrder` is the displayed sequence of original page indices (after the
+// user reorders / deletes pages). When given, the output is rebuilt in that
+// order with deleted pages dropped; objects on dropped pages are skipped.
+export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {}, pageOrder = null) {
+  const src = await PDFDocument.load(originalArrayBuffer.slice(0))
+  const order = pageOrder && pageOrder.length ? pageOrder : pages.map((p) => p.pageIndex)
+
+  // Build a fresh document containing only the kept pages, in the chosen order.
+  const pdfDoc = await PDFDocument.create()
   pdfDoc.registerFontkit(fontkit)
+  const copied = await pdfDoc.copyPages(src, order)
+  copied.forEach((p) => pdfDoc.addPage(p))
+
+  // Map a source page index -> its position in the rebuilt document.
+  const posOf = new Map(order.map((srcIndex, pos) => [srcIndex, pos]))
+  const infoById = new Map(pages.map((p) => [p.pageIndex, p]))
 
   // Reuse the PDF's own embedded fonts when we have them (exact match).
   const customCache = {}
@@ -65,9 +79,10 @@ export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {})
   const ordered = [...objects].sort((a, b) => (a.type === 'whiteout' ? -1 : 1))
 
   for (const obj of ordered) {
-    const info = pages[obj.pageIndex]
-    const page = docPages[obj.pageIndex]
-    if (!info || !page) continue
+    const info = infoById.get(obj.pageIndex)
+    const pos = posOf.get(obj.pageIndex)
+    const page = pos == null ? null : docPages[pos]
+    if (!info || !page) continue // page was deleted, or unknown
 
     const { height: pdfPageHeight } = page.getSize()
     const scale = info.scale
