@@ -28,8 +28,11 @@ export default function PageView({
   onReplaceImage,
   selectMode,
   onAreaSelect,
+  cutMode,
+  onCutOut,
   onActivate,
 }) {
+  const marqueeMode = selectMode || cutMode
   const regionOnThisPage =
     selectedRegion && selectedRegion.pageIndex === page.pageIndex ? selectedRegion : null
 
@@ -48,14 +51,14 @@ export default function PageView({
     onActivate?.(page.pageIndex)
     onSelect(null)
     onSelectRegion(null)
-    if (!selectMode) return
+    if (!marqueeMode) return
     const r = e.currentTarget.getBoundingClientRect()
     start.current = { el: e.currentTarget, x: e.clientX - r.left, y: e.clientY - r.top }
     setMarquee({ x: start.current.x, y: start.current.y, w: 0, h: 0 })
     e.currentTarget.setPointerCapture?.(e.pointerId)
   }
   function onPageMove(e) {
-    if (!selectMode || !start.current) return
+    if (!marqueeMode || !start.current) return
     const r = start.current.el.getBoundingClientRect()
     const cx = e.clientX - r.left
     const cy = e.clientY - r.top
@@ -63,16 +66,19 @@ export default function PageView({
     setMarquee({ x: Math.min(s.x, cx), y: Math.min(s.y, cy), w: Math.abs(cx - s.x), h: Math.abs(cy - s.y) })
   }
   function onPageUp() {
-    if (!selectMode || !start.current) return
+    if (!marqueeMode || !start.current) return
     const m = marquee
     start.current = null
     setMarquee(null)
-    if (m && m.w > 6 && m.h > 6) onAreaSelect(page.pageIndex, m)
+    if (m && m.w > 6 && m.h > 6) {
+      if (selectMode) onAreaSelect(page.pageIndex, m)
+      else if (cutMode) onCutOut(page.pageIndex, m)
+    }
   }
   return (
     <div className="page-wrap" id={`pw-${page.pageIndex}`}>
       <div
-        className={`page ${selectMode ? 'select-mode' : ''}`}
+        className={`page ${marqueeMode ? 'select-mode' : ''}`}
         style={{ width: page.width, height: page.height }}
         onPointerDown={onPageDown}
         onPointerMove={onPageMove}
@@ -89,7 +95,7 @@ export default function PageView({
 
         {/* Detected images: click to remove/replace (always clickable, like text).
             'show-all' outlines every image when the Images toggle is on. */}
-        {!selectMode &&
+        {!marqueeMode &&
           page.imageRegions?.map((rg, i) => {
           if (isCovered(rg)) return null
           const on = selectedRegion?.pageIndex === page.pageIndex && selectedRegion.index === i
@@ -131,7 +137,7 @@ export default function PageView({
 
         {/* Clickable existing-text layer (rendered after images so text wins overlap).
             Skip runs already covered by a whiteout so old text can't be re-grabbed. */}
-        {!selectMode &&
+        {!marqueeMode &&
           page.textItems?.map((item, i) =>
             isCovered(item) ? null : (
           <span

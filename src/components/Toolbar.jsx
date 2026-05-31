@@ -11,6 +11,8 @@ export default function Toolbar({
   onAddHighlight,
   selectMode,
   onToggleSelectMode,
+  cutMode,
+  onToggleCutMode,
   imageMode,
   onToggleImageMode,
   viewTheme,
@@ -59,6 +61,13 @@ export default function Toolbar({
             title="Drag a box around multiple lines (e.g. an address) to edit them as one block"
           >
             Select
+          </button>
+          <button
+            className={`tbtn ${cutMode ? 'active' : ''}`}
+            onClick={onToggleCutMode}
+            title="Drag a box around a signature, seal or stamp to lift it into a movable object"
+          >
+            ✂ Cut out
           </button>
           <button
             className={`tbtn ${imageMode ? 'active' : ''}`}
@@ -118,11 +127,13 @@ export default function Toolbar({
         </div>
       </div>
 
-      {(selectMode || imageMode) && (
+      {(selectMode || cutMode || imageMode) && (
         <div className="mode-bar">
           {selectMode
             ? '✦ Select mode — drag a box around the lines you want (e.g. an address) to edit them together'
-            : '✦ Showing all images — click one to remove or replace it'}
+            : cutMode
+              ? '✂ Cut-out mode — drag a box around a signature, seal or stamp to lift it into a movable object'
+              : '✦ Showing all images — click one to remove or replace it'}
         </div>
       )}
     </>

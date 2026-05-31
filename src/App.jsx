@@ -26,6 +26,7 @@ export default function App() {
   const [selectedRegion, setSelectedRegion] = useState(null)
   const [viewTheme, setViewTheme] = useState('normal')
   const [selectMode, setSelectMode] = useState(false)
+  const [cutMode, setCutMode] = useState(false) // drag a box to lift it out of the scan
   const [docFont, setDocFont] = useState('') // applied document-wide font
   const [activePage, setActivePage] = useState(0) // page nearest the viewport center
   const [pageOrder, setPageOrder] = useState([]) // displayed sequence of source page indices
@@ -234,6 +235,23 @@ export default function App() {
     setSelectedId(null)
     setSelectedRegion(null)
     setImageMode(false)
+    setCutMode(false)
+  }
+
+  // Cut-out mode: drag a box around a signature, seal or stamp on a scanned
+  // page and lift it into a movable/resizable/deletable object.
+  function toggleCutMode() {
+    setCutMode((c) => !c)
+    setSelectedId(null)
+    setSelectedRegion(null)
+    setImageMode(false)
+    setSelectMode(false)
+  }
+
+  // Marquee released in cut mode -> lift that rectangle of the page raster.
+  function cutOut(pageIndex, rect) {
+    setCutMode(false)
+    liftRegion({ pageIndex, x: rect.x, y: rect.y, width: rect.w, height: rect.h })
   }
 
   // Restyle the WHOLE document in a chosen font: cover every original text run
@@ -343,6 +361,8 @@ export default function App() {
     setImageMode((m) => !m)
     setSelectedRegion(null)
     setSelectedId(null)
+    setSelectMode(false)
+    setCutMode(false)
   }
 
   // "Remove" a detected image = cover it with a whiteout (baked on export).
@@ -470,6 +490,7 @@ export default function App() {
     setImageMode(false)
     setSelectedRegion(null)
     setSelectMode(false)
+    setCutMode(false)
     setDocFont('')
     setOcrBusy(false)
     setOcrRan(false)
@@ -515,6 +536,8 @@ export default function App() {
         onAddHighlight={addHighlight}
         selectMode={selectMode}
         onToggleSelectMode={toggleSelectMode}
+        cutMode={cutMode}
+        onToggleCutMode={toggleCutMode}
         imageMode={imageMode}
         onToggleImageMode={toggleImageMode}
         viewTheme={viewTheme}
@@ -596,6 +619,8 @@ export default function App() {
                 onReplaceImage={replaceImage}
                 selectMode={selectMode}
                 onAreaSelect={areaSelect}
+                cutMode={cutMode}
+                onCutOut={cutOut}
                 onActivate={setActivePage}
               />
             )
