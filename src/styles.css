@@ -218,7 +218,9 @@ body {
     0 0 0 1px rgba(80, 50, 30, .04);
 }
 .page-bg { display: block; width: 100%; height: 100%; user-select: none; }
-.page-label { font-size: 12px; color: var(--muted); }
+.page-label { font-size: 12px; color: var(--muted); transition: color .15s; }
+.page-label.active { color: var(--accent-d); font-weight: 600; }
+.page-label-tag { color: var(--accent); margin-left: 4px; }
 .page.select-mode { cursor: crosshair; }
 
 /* Drag-to-select marquee */

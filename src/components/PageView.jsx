@@ -8,6 +8,7 @@ import TextPopup from './TextPopup.jsx'
 // layer for editing existing text in place, and the editable object overlay.
 export default function PageView({
   page,
+  isActive,
   objects,
   selectedId,
   onSelect,
@@ -26,6 +27,7 @@ export default function PageView({
   onReplaceImage,
   selectMode,
   onAreaSelect,
+  onActivate,
 }) {
   const regionOnThisPage =
     selectedRegion && selectedRegion.pageIndex === page.pageIndex ? selectedRegion : null
@@ -42,6 +44,7 @@ export default function PageView({
   }
 
   function onPageDown(e) {
+    onActivate?.(page.pageIndex)
     onSelect(null)
     onSelectRegion(null)
     if (!selectMode) return
@@ -234,7 +237,10 @@ export default function PageView({
           )
         })()}
       </div>
-      <div className="page-label">Page {page.pageIndex + 1}</div>
+      <div className={`page-label ${isActive ? 'active' : ''}`}>
+        Page {page.pageIndex + 1}
+        {isActive && <span className="page-label-tag">· adding here</span>}
+      </div>
     </div>
   )
 }

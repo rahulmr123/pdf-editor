@@ -25,6 +25,8 @@ export default function App() {
   const [viewTheme, setViewTheme] = useState('normal')
   const [selectMode, setSelectMode] = useState(false)
   const [docFont, setDocFont] = useState('') // applied document-wide font
+  const [activePage, setActivePage] = useState(0) // page nearest the viewport center
+  const canvasRef = useRef(null)
   const replaceTarget = useRef(null)
   const replaceInputRef = useRef(null)
   const pendingEdit = useRef(null) // a click-to-edit that's reverted if left unchanged
@@ -106,6 +108,7 @@ export default function App() {
       setPages(rendered)
       setObjects([])
       setSelectedId(null)
+      setActivePage(0)
       past.current = []
       future.current = []
     } catch (e) {
@@ -114,13 +117,35 @@ export default function App() {
     }
   }
 
-  function addText(pageIndex = 0, x = 60, y = 60) {
+  // The page whose center is closest to the viewport center is "active" — new
+  // objects land there, so what you add appears on the page you're looking at.
+  function onCanvasScroll() {
+    const el = canvasRef.current
+    if (!el) return
+    const crect = el.getBoundingClientRect()
+    const mid = crect.top + crect.height / 2
+    let best = 0
+    let bestDist = Infinity
+    el.querySelectorAll('.page-wrap').forEach((w, i) => {
+      const r = w.getBoundingClientRect()
+      const d = Math.abs(r.top + r.height / 2 - mid)
+      if (d < bestDist) {
+        bestDist = d
+        best = i
+      }
+    })
+    const idx = pages[best]?.pageIndex
+    if (idx != null && idx !== activePage) setActivePage(idx)
+  }
+
+  function addText(pageIndex = activePage, x = 60, y = 60) {
     dispatch({ type: 'addText', pageIndex, x, y })
   }
 
   // Click existing PDF text -> cover it and drop a matching editable box on top.
   function editExisting(pageIndex, item) {
     resolvePending()
+    setActivePage(pageIndex)
     const result = dispatch({ type: 'editTextRun', pageIndex, item })
     setSelectedRegion(null)
     pendingEdit.current = result.pending || null
@@ -129,7 +154,7 @@ export default function App() {
   // Place an image/signature, scaled to a sensible default width, on page 1.
   function placeImage({ src, w, h }, maxW = 260) {
     const scale = Math.min(1, maxW / w)
-    dispatch({ type: 'addImage', pageIndex: 0, x: 80, y: 120, w: w * scale, h: h * scale, src })
+    dispatch({ type: 'addImage', pageIndex: activePage, x: 80, y: 120, w: w * scale, h: h * scale, src })
   }
 
   function toggleSelectMode() {
@@ -185,6 +210,7 @@ export default function App() {
   // editable, multi-line block (e.g. a full address), and cover the original.
   function areaSelect(pageIndex, rect) {
     resolvePending()
+    setActivePage(pageIndex)
     setSelectMode(false)
     const result = dispatch({ type: 'selectArea', pageIndex, rect })
     setSelectedRegion(null)
@@ -192,7 +218,7 @@ export default function App() {
   }
 
   function addHighlight() {
-    dispatch({ type: 'addHighlight', pageIndex: 0, x: 80, y: 120, w: 180, h: 26 })
+    dispatch({ type: 'addHighlight', pageIndex: activePage, x: 80, y: 120, w: 180, h: 26 })
   }
 
   function handleImageFile(file) {
@@ -407,7 +433,7 @@ export default function App() {
     <div className="app">
       <Toolbar
         selected={selected}
-        onAddText={() => addText(0, 60, 60)}
+        onAddText={() => addText()}
         onImageFile={handleImageFile}
         onAddSignature={() => setShowSig(true)}
         onAddHighlight={addHighlight}
@@ -428,11 +454,12 @@ export default function App() {
         canRedo={future.current.length > 0}
         busy={busy}
       />
-      <div className="canvas-area" data-theme={viewTheme}>
+      <div className="canvas-area" data-theme={viewTheme} ref={canvasRef} onScroll={onCanvasScroll}>
         {pages.map((page) => (
           <PageView
             key={page.pageIndex}
             page={page}
+            isActive={page.pageIndex === activePage}
             objects={objects.filter((o) => o.pageIndex === page.pageIndex)}
             selectedId={selectedId}
             onSelect={selectObject}
@@ -451,6 +478,7 @@ export default function App() {
             onReplaceImage={replaceImage}
             selectMode={selectMode}
             onAreaSelect={areaSelect}
+            onActivate={setActivePage}
           />
         ))}
       </div>
