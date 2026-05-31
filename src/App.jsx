@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { renderPdf } from './lib/pdf.js'
 import { exportPdf } from './lib/exportPdf.js'
+import { applyCommand } from './lib/commands.js'
 import UploadZone from './components/UploadZone.jsx'
 import Toolbar from './components/Toolbar.jsx'
 import PageView from './components/PageView.jsx'
@@ -79,6 +80,20 @@ export default function App() {
     tick()
   }
 
+  // The single path through which every document change flows. The toolbar,
+  // the future ⌘K palette, and the future AI agent all just emit commands;
+  // applyCommand is the only place the objects array is transformed.
+  //   history:false → a live/transient update (e.g. mid-drag) that shouldn't
+  //   create its own undo step (the gesture snapshots once at the start).
+  function dispatch(cmd, { history = true } = {}) {
+    const result = applyCommand(objects, cmd, { newId, pages })
+    if (result.objects === objects) return result // no-op: no history, no render
+    if (history) snapshot()
+    setObjects(result.objects)
+    if ('selectId' in result) setSelectedId(result.selectId)
+    return result
+  }
+
   async function handleFile(file) {
     setError('')
     try {
@@ -100,121 +115,21 @@ export default function App() {
   }
 
   function addText(pageIndex = 0, x = 60, y = 60) {
-    snapshot()
-    const obj = {
-      id: newId(),
-      type: 'text',
-      pageIndex,
-      x,
-      y,
-      text: 'New text',
-      fontSize: 18,
-      color: '#111111',
-      bold: false,
-      italic: false,
-      bgColor: 'none',
-      font: 'sans',
-      fontRef: null,
-      origFontRef: null,
-      fontName: '',
-    }
-    setObjects((prev) => [...prev, obj])
-    setSelectedId(obj.id)
+    dispatch({ type: 'addText', pageIndex, x, y })
   }
 
   // Click existing PDF text -> cover it and drop a matching editable box on top.
   function editExisting(pageIndex, item) {
     resolvePending()
-    const page = pages.find((p) => p.pageIndex === pageIndex)
-
-    // Grab the whole contiguous run-cluster on the clicked line (PDF.js often
-    // splits a phrase/cell into several runs), stopping at large gaps so we
-    // don't bleed into the next table column.
-    const line = (page?.textItems || [])
-      .filter((t) => Math.abs(t.y - item.y) < item.height * 0.6)
-      .sort((a, b) => a.x - b.x)
-    let cluster = [item]
-    const idx = line.findIndex((t) => t.x === item.x && t.y === item.y && t.str === item.str)
-    if (idx !== -1) {
-      const gapMax = item.fontSize * 1.6
-      let lo = idx
-      let hi = idx
-      while (lo > 0 && line[lo].x - (line[lo - 1].x + line[lo - 1].width) <= gapMax) lo--
-      while (hi < line.length - 1 && line[hi + 1].x - (line[hi].x + line[hi].width) <= gapMax) hi++
-      cluster = line.slice(lo, hi + 1)
-    }
-
-    // join runs: a visible gap -> space, a tiny gap (split mid-word) -> no space
-    let text = ''
-    cluster.forEach((t, k) => {
-      if (k > 0) {
-        const prev = cluster[k - 1]
-        if (t.x - (prev.x + prev.width) > t.fontSize * 0.28) text += ' '
-      }
-      text += t.str
-    })
-
-    snapshot()
-    const pad = 1
-    const whiteouts = cluster.map((t) => ({
-      id: newId(),
-      type: 'whiteout',
-      pageIndex,
-      x: t.x - pad,
-      y: t.y - pad,
-      w: t.width + pad * 2,
-      h: t.height + pad * 2,
-      color: '#ffffff',
-    }))
-    const minX = Math.min(...cluster.map((t) => t.x))
-    const minY = Math.min(...cluster.map((t) => t.y))
-    const textObj = {
-      id: newId(),
-      type: 'text',
-      pageIndex,
-      x: minX,
-      y: minY,
-      text,
-      fontSize: item.fontSize,
-      color: '#111111',
-      bold: !!item.fontBold,
-      italic: !!item.fontItalic,
-      bgColor: 'none',
-      font: item.fontCategory || 'sans',
-      fontRef: item.fontRef || null,
-      origFontRef: item.fontRef || null,
-      fontName: item.fontName || '',
-    }
-    setObjects((prev) => [...prev, ...whiteouts, textObj])
-    setSelectedId(textObj.id)
+    const result = dispatch({ type: 'editTextRun', pageIndex, item })
     setSelectedRegion(null)
-    pendingEdit.current = {
-      textId: textObj.id,
-      whiteoutIds: whiteouts.map((w) => w.id),
-      originalText: text,
-      originalFontSize: item.fontSize,
-      originalBold: !!item.fontBold,
-      originalItalic: !!item.fontItalic,
-      originalFont: item.fontCategory || 'sans',
-    }
+    pendingEdit.current = result.pending || null
   }
 
   // Place an image/signature, scaled to a sensible default width, on page 1.
   function placeImage({ src, w, h }, maxW = 260) {
-    snapshot()
     const scale = Math.min(1, maxW / w)
-    const obj = {
-      id: newId(),
-      type: 'image',
-      pageIndex: 0,
-      x: 80,
-      y: 120,
-      w: w * scale,
-      h: h * scale,
-      src,
-    }
-    setObjects((prev) => [...prev, obj])
-    setSelectedId(obj.id)
+    dispatch({ type: 'addImage', pageIndex: 0, x: 80, y: 120, w: w * scale, h: h * scale, src })
   }
 
   function toggleSelectMode() {
@@ -230,8 +145,7 @@ export default function App() {
     setSelectedId(null)
     setSelectedRegion(null)
     if (!key) {
-      snapshot()
-      setObjects((prev) => prev.filter((o) => !o.docRestyle))
+      dispatch({ type: 'clearDocRestyle' })
       setDocFont('')
       return
     }
@@ -263,8 +177,7 @@ export default function App() {
         })
       }
     }
-    snapshot()
-    setObjects((prev) => [...prev.filter((o) => !o.docRestyle), ...next])
+    dispatch({ type: 'replaceDocRestyle', objects: next })
     setDocFont(key)
   }
 
@@ -272,108 +185,14 @@ export default function App() {
   // editable, multi-line block (e.g. a full address), and cover the original.
   function areaSelect(pageIndex, rect) {
     resolvePending()
-    const page = pages.find((p) => p.pageIndex === pageIndex)
     setSelectMode(false)
-    if (!page) return
-
-    const items = (page.textItems || []).filter(
-      (it) =>
-        !(
-          it.x > rect.x + rect.w ||
-          it.x + it.width < rect.x ||
-          it.y > rect.y + rect.h ||
-          it.y + it.height < rect.y
-        ),
-    )
-    if (!items.length) return
-
-    // group runs into lines by vertical position, then order each line by x
-    const sorted = [...items].sort((a, b) => a.y - b.y || a.x - b.x)
-    const lines = []
-    for (const it of sorted) {
-      const last = lines[lines.length - 1]
-      if (last && Math.abs(it.y - last.y) < it.height * 0.6) {
-        last.items.push(it)
-        last.y = Math.min(last.y, it.y)
-      } else {
-        lines.push({ y: it.y, items: [it] })
-      }
-    }
-    const text = lines
-      .map((l) =>
-        l.items
-          .sort((a, b) => a.x - b.x)
-          .map((i) => i.str)
-          .join(' '),
-      )
-      .join('\n')
-
-    const minX = Math.min(...items.map((i) => i.x))
-    const minY = Math.min(...items.map((i) => i.y))
-    const maxX = Math.max(...items.map((i) => i.x + i.width))
-    const maxY = Math.max(...items.map((i) => i.y + i.height))
-    const fontSize = sorted[0].fontSize
-
-    snapshot()
-    // Cover each text run individually (not one big box) so table borders /
-    // gridlines between cells stay visible.
-    const pad = 1
-    const whiteouts = items.map((it) => ({
-      id: newId(),
-      type: 'whiteout',
-      pageIndex,
-      x: it.x - pad,
-      y: it.y - pad,
-      w: it.width + pad * 2,
-      h: it.height + pad * 2,
-      color: '#ffffff',
-    }))
-    const textObj = {
-      id: newId(),
-      type: 'text',
-      pageIndex,
-      x: minX,
-      y: minY,
-      text,
-      fontSize,
-      color: '#111111',
-      bold: !!sorted[0].fontBold,
-      italic: !!sorted[0].fontItalic,
-      bgColor: 'none',
-      font: sorted[0].fontCategory || 'sans',
-      fontRef: sorted[0].fontRef || null,
-      origFontRef: sorted[0].fontRef || null,
-      fontName: sorted[0].fontName || '',
-    }
-    setObjects((prev) => [...prev, ...whiteouts, textObj])
-    setSelectedId(textObj.id)
+    const result = dispatch({ type: 'selectArea', pageIndex, rect })
     setSelectedRegion(null)
-    pendingEdit.current = {
-      textId: textObj.id,
-      whiteoutIds: whiteouts.map((w) => w.id),
-      originalText: text,
-      originalFontSize: fontSize,
-      originalBold: !!sorted[0].fontBold,
-      originalItalic: !!sorted[0].fontItalic,
-      originalFont: sorted[0].fontCategory || 'sans',
-    }
+    pendingEdit.current = result.pending || null
   }
 
   function addHighlight() {
-    snapshot()
-    const obj = {
-      id: newId(),
-      type: 'highlight',
-      pageIndex: 0,
-      x: 80,
-      y: 120,
-      w: 180,
-      h: 26,
-      color: '#FFE600',
-      opacity: 0.4,
-    }
-    setObjects((prev) => [...prev, obj])
-    setSelectedId(obj.id)
+    dispatch({ type: 'addHighlight', pageIndex: 0, x: 80, y: 120, w: 180, h: 26 })
   }
 
   function handleImageFile(file) {
@@ -386,8 +205,9 @@ export default function App() {
     reader.readAsDataURL(file)
   }
 
-  // If a click-to-edit was left untouched (same text, default styling), undo it
-  // so merely clicking text never changes how it looks.
+  // If a click-to-edit was left untouched (same text, default styling), revert
+  // it so merely clicking text never changes how it looks. This is a net-zero
+  // cleanup of an uncommitted edit, so it stays out of the command/history path.
   function resolvePending() {
     const p = pendingEdit.current
     if (!p) return
@@ -429,20 +249,7 @@ export default function App() {
 
   // "Remove" a detected image = cover it with a whiteout (baked on export).
   function removeRegion(region) {
-    snapshot()
-    setObjects((prev) => [
-      ...prev,
-      {
-        id: newId(),
-        type: 'whiteout',
-        pageIndex: region.pageIndex,
-        x: region.x,
-        y: region.y,
-        w: region.width,
-        h: region.height,
-        color: '#ffffff',
-      },
-    ])
+    dispatch({ type: 'redactRegion', region })
     setSelectedRegion(null)
   }
 
@@ -472,29 +279,15 @@ export default function App() {
         .getContext('2d')
         .drawImage(image, region.x, region.y, region.width, region.height, 0, 0, w, h)
       const src = canvas.toDataURL('image/png')
-      snapshot()
-      const whiteout = {
-        id: newId(),
-        type: 'whiteout',
-        pageIndex: region.pageIndex,
-        x: region.x,
-        y: region.y,
-        w: region.width,
-        h: region.height,
-        color: '#ffffff',
+      const whiteoutObj = {
+        id: newId(), type: 'whiteout', pageIndex: region.pageIndex,
+        x: region.x, y: region.y, w: region.width, h: region.height, color: '#ffffff',
       }
       const imgObj = {
-        id: newId(),
-        type: 'image',
-        pageIndex: region.pageIndex,
-        x: region.x,
-        y: region.y,
-        w: region.width,
-        h: region.height,
-        src,
+        id: newId(), type: 'image', pageIndex: region.pageIndex,
+        x: region.x, y: region.y, w: region.width, h: region.height, src,
       }
-      setObjects((prev) => [...prev, whiteout, imgObj])
-      setSelectedId(imgObj.id)
+      dispatch({ type: 'addObjects', objects: [whiteoutObj, imgObj], selectId: imgObj.id })
       setSelectedRegion(null)
     }
     image.src = page.dataUrl
@@ -507,46 +300,32 @@ export default function App() {
     reader.onload = () => {
       const img = new Image()
       img.onload = () => {
-        snapshot()
         if (t.kind === 'region') {
           const region = t.region
           const s = Math.min(region.width / img.naturalWidth, region.height / img.naturalHeight)
           const w = img.naturalWidth * s
           const h = img.naturalHeight * s
           const imgId = newId()
-          setObjects((prev) => [
-            ...prev,
-            {
-              id: newId(),
-              type: 'whiteout',
-              pageIndex: region.pageIndex,
-              x: region.x,
-              y: region.y,
-              w: region.width,
-              h: region.height,
-              color: '#ffffff',
-            },
-            {
-              id: imgId,
-              type: 'image',
-              pageIndex: region.pageIndex,
-              x: region.x + (region.width - w) / 2,
-              y: region.y + (region.height - h) / 2,
-              w,
-              h,
-              src: reader.result,
-            },
-          ])
-          setSelectedId(imgId)
+          const whiteoutObj = {
+            id: newId(), type: 'whiteout', pageIndex: region.pageIndex,
+            x: region.x, y: region.y, w: region.width, h: region.height, color: '#ffffff',
+          }
+          const imgObj = {
+            id: imgId, type: 'image', pageIndex: region.pageIndex,
+            x: region.x + (region.width - w) / 2,
+            y: region.y + (region.height - h) / 2,
+            w, h, src: reader.result,
+          }
+          dispatch({ type: 'addObjects', objects: [whiteoutObj, imgObj], selectId: imgId })
         } else {
           // swap an existing image object's src, keeping width and matching aspect
-          setObjects((prev) =>
-            prev.map((o) =>
-              o.id === t.id
-                ? { ...o, src: reader.result, h: o.w * (img.naturalHeight / img.naturalWidth) }
-                : o,
-            ),
-          )
+          const target = objects.find((o) => o.id === t.id)
+          const aspect = img.naturalHeight / img.naturalWidth
+          dispatch({
+            type: 'updateObject',
+            id: t.id,
+            patch: { src: reader.result, ...(target ? { h: target.w * aspect } : {}) },
+          })
         }
         setSelectedRegion(null)
         replaceTarget.current = null
@@ -557,13 +336,11 @@ export default function App() {
   }
 
   function updateObject(id, patch) {
-    setObjects((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)))
+    dispatch({ type: 'updateObject', id, patch }, { history: false })
   }
 
   function deleteObject(id) {
-    snapshot()
-    setObjects((prev) => prev.filter((o) => o.id !== id))
-    setSelectedId(null)
+    dispatch({ type: 'deleteObjects', ids: [id] })
   }
 
   async function handleExport() {
