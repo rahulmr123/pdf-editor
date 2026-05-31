@@ -186,6 +186,12 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
     let imageRegions = []
     try {
       imageRegions = await detectImages(page, viewport)
+      // Drop near-full-page images (e.g. a scanned page is one giant image):
+      // it isn't a meaningful "remove/replace this picture" target and would
+      // tint the whole page on hover. It stays as the locked background.
+      imageRegions = imageRegions.filter(
+        (r) => !(r.width >= viewport.width * 0.92 && r.height >= viewport.height * 0.92),
+      )
     } catch (e) {
       console.error('image detection failed', e)
     }

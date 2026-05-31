@@ -2,6 +2,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { renderPdf } from './lib/pdf.js'
 import { exportPdf } from './lib/exportPdf.js'
 import { applyCommand } from './lib/commands.js'
+import { ocrPages } from './lib/ocr.js'
 import UploadZone from './components/UploadZone.jsx'
 import Toolbar from './components/Toolbar.jsx'
 import PageView from './components/PageView.jsx'
@@ -29,6 +30,9 @@ export default function App() {
   const [activePage, setActivePage] = useState(0) // page nearest the viewport center
   const [pageOrder, setPageOrder] = useState([]) // displayed sequence of source page indices
   const [showPages, setShowPages] = useState(true) // Pages panel visibility
+  const [ocrBusy, setOcrBusy] = useState(false)
+  const [ocrRan, setOcrRan] = useState(false)
+  const [ocrProgress, setOcrProgress] = useState(null) // { page, total, ratio }
   const canvasRef = useRef(null)
   const replaceTarget = useRef(null)
   const replaceInputRef = useRef(null)
@@ -64,6 +68,13 @@ export default function App() {
 
   const pageById = useMemo(
     () => new Map(pages.map((p) => [p.pageIndex, p])),
+    [pages],
+  )
+
+  // Pages with no extractable text are scanned/image-only — OCR can make them
+  // editable. Offer it until OCR has run.
+  const scannedCount = useMemo(
+    () => pages.filter((p) => !p.textItems?.length).length,
     [pages],
   )
 
@@ -118,11 +129,36 @@ export default function App() {
       setObjects([])
       setSelectedId(null)
       setActivePage(rendered[0]?.pageIndex ?? 0)
+      setOcrRan(false)
+      setOcrProgress(null)
       past.current = []
       future.current = []
     } catch (e) {
       console.error(e)
       setError('Could not read that PDF. Try another file.')
+    }
+  }
+
+  // OCR every scanned page and merge the recognised words into its textItems,
+  // so existing-text editing works on scanned PDFs just like digital ones.
+  async function runOcr() {
+    const targets = pages.filter((p) => !p.textItems?.length)
+    if (!targets.length || ocrBusy) return
+    setOcrBusy(true)
+    setOcrProgress({ page: 0, total: targets.length, ratio: 0 })
+    try {
+      const results = await ocrPages(targets, setOcrProgress)
+      const byIdx = new Map(results.map((r) => [r.pageIndex, r.textItems]))
+      setPages((prev) =>
+        prev.map((p) => (byIdx.has(p.pageIndex) ? { ...p, textItems: byIdx.get(p.pageIndex), ocr: true } : p)),
+      )
+    } catch (e) {
+      console.error(e)
+      setError('Text recognition failed — see console.')
+    } finally {
+      setOcrRan(true)
+      setOcrBusy(false)
+      setOcrProgress(null)
     }
   }
 
@@ -435,6 +471,9 @@ export default function App() {
     setSelectedRegion(null)
     setSelectMode(false)
     setDocFont('')
+    setOcrBusy(false)
+    setOcrRan(false)
+    setOcrProgress(null)
     past.current = []
     future.current = []
   }
@@ -493,6 +532,31 @@ export default function App() {
         onTogglePages={() => setShowPages((s) => !s)}
         busy={busy}
       />
+
+      {(ocrBusy || (scannedCount > 0 && !ocrRan)) && (
+        <div className="ocr-bar">
+          {ocrBusy ? (
+            <>
+              <span className="ocr-spinner" />
+              <span>
+                Recognising text — page {(ocrProgress?.page ?? 0) + 1} of {ocrProgress?.total ?? scannedCount}
+                {ocrProgress ? ` · ${Math.round(ocrProgress.ratio * 100)}%` : ''}
+              </span>
+            </>
+          ) : (
+            <>
+              <span>
+                ✦ This looks like a scanned PDF — {scannedCount} page{scannedCount > 1 ? 's' : ''} have no
+                selectable text. You can still add text, signatures and images on top.
+              </span>
+              <button className="btn primary sm" onClick={runOcr}>
+                Make text editable (OCR)
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="workspace">
         {showPages && (
           <PagesPanel
