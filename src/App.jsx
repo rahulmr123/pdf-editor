@@ -13,6 +13,10 @@ import { DOC_FONTS, docFontCss, registerDocFonts } from './lib/docfonts.js'
 let idSeq = 1
 const newId = () => `obj_${idSeq++}`
 
+// Inserted blank pages get unique negative indices so they never collide with
+// the source PDF's 0..n-1 page indices (or with each other).
+let blankSeq = -1
+
 export default function App() {
   const [fileName, setFileName] = useState('')
   const [buffer, setBuffer] = useState(null) // original ArrayBuffer, kept pristine
@@ -75,7 +79,7 @@ export default function App() {
   // Pages with no extractable text are scanned/image-only — OCR can make them
   // editable. Offer it until OCR has run.
   const scannedCount = useMemo(
-    () => pages.filter((p) => !p.textItems?.length).length,
+    () => pages.filter((p) => !p.blank && !p.textItems?.length).length,
     [pages],
   )
 
@@ -143,7 +147,7 @@ export default function App() {
   // OCR every scanned page and merge the recognised words into its textItems,
   // so existing-text editing works on scanned PDFs just like digital ones.
   async function runOcr() {
-    const targets = pages.filter((p) => !p.textItems?.length)
+    const targets = pages.filter((p) => !p.blank && !p.textItems?.length)
     if (!targets.length || ocrBusy) return
     setOcrBusy(true)
     setOcrProgress({ page: 0, total: targets.length, ratio: 0 })
@@ -189,6 +193,39 @@ export default function App() {
   function goToPage(srcIndex) {
     setActivePage(srcIndex)
     document.getElementById(`pw-${srcIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  // Insert a blank page right after the active one. It matches the active page's
+  // dimensions so it slots in seamlessly, and becomes a real blank page on export.
+  function addBlankPage() {
+    const ref = pageById.get(activePage) || pages[0]
+    const width = ref?.width ?? 820
+    const height = ref?.height ?? Math.round((820 * 792) / 612)
+    const pdfWidth = ref?.pdfWidth ?? 612
+    const pdfHeight = ref?.pdfHeight ?? 792
+    const scale = ref?.scale ?? width / pdfWidth
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, width, height)
+    const pageIndex = blankSeq--
+    const blank = {
+      pageIndex, blank: true, scale, width, height, pdfWidth, pdfHeight,
+      dataUrl: canvas.toDataURL('image/png'), textItems: [], imageRegions: [],
+    }
+    setPages((prev) => [...prev, blank])
+    setPageOrder((order) => {
+      const pos = order.indexOf(activePage)
+      const next = [...order]
+      next.splice(pos === -1 ? order.length : pos + 1, 0, pageIndex)
+      return next
+    })
+    setActivePage(pageIndex)
+    requestAnimationFrame(() =>
+      document.getElementById(`pw-${pageIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    )
   }
 
   // Reorder pages: move the page at `from` (display position) to `to`.
@@ -589,6 +626,7 @@ export default function App() {
             onGoToPage={goToPage}
             onMovePage={movePage}
             onDeletePage={deletePage}
+            onAddPage={addBlankPage}
           />
         )}
         <div className="canvas-area" data-theme={viewTheme} ref={canvasRef} onScroll={onCanvasScroll}>

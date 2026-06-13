@@ -251,6 +251,25 @@ body {
   flex-direction: column;
   gap: 10px;
 }
+.pages-add {
+  flex-shrink: 0;
+  margin: 0 12px 12px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.pages-add:hover {
+  color: var(--accent-d);
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
 .thumb {
   display: flex;
   flex-direction: column;

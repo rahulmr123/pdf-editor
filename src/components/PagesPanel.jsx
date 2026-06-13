@@ -10,6 +10,7 @@ export default function PagesPanel({
   onGoToPage,
   onMovePage,
   onDeletePage,
+  onAddPage,
 }) {
   const [dragFrom, setDragFrom] = useState(null)
   const [dragOver, setDragOver] = useState(null)
@@ -66,6 +67,9 @@ export default function PagesPanel({
           )
         })}
       </div>
+      <button className="pages-add" onClick={onAddPage} title="Insert a blank page after the current one">
+        + Blank page
+      </button>
     </aside>
   )
 }

@@ -19,10 +19,23 @@ export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {},
   const order = pageOrder && pageOrder.length ? pageOrder : pages.map((p) => p.pageIndex)
 
   // Build a fresh document containing only the kept pages, in the chosen order.
+  // Blank pages (inserted in the editor) have no source page, so we create them
+  // fresh at their stored size; the rest are copied from the original.
   const pdfDoc = await PDFDocument.create()
   pdfDoc.registerFontkit(fontkit)
-  const copied = await pdfDoc.copyPages(src, order)
-  copied.forEach((p) => pdfDoc.addPage(p))
+  const sizeByIndex = new Map(pages.map((p) => [p.pageIndex, p]))
+  const isBlank = (i) => !!sizeByIndex.get(i)?.blank
+  const realIndices = order.filter((i) => !isBlank(i))
+  const copied = await pdfDoc.copyPages(src, realIndices)
+  const copiedByIndex = new Map(realIndices.map((i, k) => [i, copied[k]]))
+  for (const i of order) {
+    if (isBlank(i)) {
+      const info = sizeByIndex.get(i)
+      pdfDoc.addPage([info.pdfWidth, info.pdfHeight])
+    } else {
+      pdfDoc.addPage(copiedByIndex.get(i))
+    }
+  }
 
   // Map a source page index -> its position in the rebuilt document.
   const posOf = new Map(order.map((srcIndex, pos) => [srcIndex, pos]))
