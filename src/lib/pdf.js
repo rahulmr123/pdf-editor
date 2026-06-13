@@ -47,6 +47,44 @@ async function detectImages(page, viewport) {
   return regions
 }
 
+// Estimate a text run's ink colour by sampling the rendered raster inside its
+// box. PDF.js text content carries no colour, so without this every edited run
+// would revert to black — losing blue links, coloured headings, etc. We take
+// the darkest ~25% of opaque pixels (the glyph strokes, ignoring the light
+// background and anti-aliased edges) and average them. Returns a #rrggbb string,
+// or null when the box holds no real ink (so the caller keeps its default).
+function sampleInkColor(data, canvasW, canvasH, box) {
+  const x0 = Math.max(0, Math.floor(box.x))
+  const y0 = Math.max(0, Math.floor(box.y))
+  const x1 = Math.min(canvasW, Math.ceil(box.x + box.width))
+  const y1 = Math.min(canvasH, Math.ceil(box.y + box.height))
+  if (x1 <= x0 || y1 <= y0) return null
+
+  const px = [] // { lum, r, g, b }
+  for (let y = y0; y < y1; y++) {
+    let o = (y * canvasW + x0) * 4
+    for (let x = x0; x < x1; x++, o += 4) {
+      const a = data[o + 3]
+      if (a < 32) continue
+      const r = data[o]
+      const g = data[o + 1]
+      const b = data[o + 2]
+      px.push({ lum: 0.299 * r + 0.587 * g + 0.114 * b, r, g, b })
+    }
+  }
+  if (px.length < 4) return null
+
+  px.sort((a, b) => a.lum - b.lum)
+  const take = Math.max(3, Math.round(px.length * 0.25))
+  let r = 0, g = 0, b = 0, lum = 0
+  for (let i = 0; i < take; i++) {
+    r += px[i].r; g += px[i].g; b += px[i].b; lum += px[i].lum
+  }
+  if (lum / take > 210) return null // no real ink — box is essentially blank
+  const hex = (n) => Math.round(n / take).toString(16).padStart(2, '0')
+  return `#${hex(r)}${hex(g)}${hex(b)}`
+}
+
 // Classify a font's family / style from its PostScript or family name.
 function classifyFamily(name) {
   const n = (name || '').toLowerCase()
@@ -161,18 +199,25 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
       return info
     }
 
+    // One read of the rendered page so we can sample each run's ink colour
+    // without a getImageData call per run.
+    const pageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+
     const textItems = []
     for (const item of textContent.items) {
       if (!item.str || !item.str.trim()) continue
       const tx = pdfjsLib.Util.transform(viewport.transform, item.transform)
       const fontSize = Math.hypot(tx[2], tx[3])
       const info = getFontInfo(item.fontName)
+      const x = tx[4]
+      const y = tx[5] - fontSize
+      const width = item.width * scale
 
       textItems.push({
         str: item.str,
-        x: tx[4], // displayed px, left
-        y: tx[5] - fontSize, // displayed px, top (tx[5] is the baseline)
-        width: item.width * scale,
+        x, // displayed px, left
+        y, // displayed px, top (tx[5] is the baseline)
+        width,
         height: fontSize,
         fontSize,
         fontCategory: info.fontCategory,
@@ -180,6 +225,7 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
         fontItalic: info.italic,
         fontRef: info.fontRef,
         fontName: info.fontName,
+        color: sampleInkColor(pageData, canvas.width, canvas.height, { x, y, width, height: fontSize }),
       })
     }
 

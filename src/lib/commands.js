@@ -163,6 +163,7 @@ export function applyCommand(objects, cmd, ctx) {
       const minX = Math.min(...cluster.map((t) => t.x))
       const minY = Math.min(...cluster.map((t) => t.y))
       const it = cmd.item
+      const color = it.color || '#111111'
       const textObj = makeText(newId(), cmd.pageIndex, minX, minY, {
         text,
         fontSize: it.fontSize,
@@ -172,6 +173,7 @@ export function applyCommand(objects, cmd, ctx) {
         fontRef: it.fontRef || null,
         origFontRef: it.fontRef || null,
         fontName: it.fontName || '',
+        color,
       })
       return {
         objects: [...objects, ...whiteouts, textObj],
@@ -184,6 +186,7 @@ export function applyCommand(objects, cmd, ctx) {
           originalBold: !!it.fontBold,
           originalItalic: !!it.fontItalic,
           originalFont: it.fontCategory || 'sans',
+          originalColor: color,
         },
       }
     }
@@ -201,6 +204,7 @@ export function applyCommand(objects, cmd, ctx) {
         whiteout(newId(), cmd.pageIndex, it.x - pad, it.y - pad, it.width + pad * 2, it.height + pad * 2),
       )
       const s0 = sorted[0]
+      const color = s0.color || '#111111'
       const textObj = makeText(newId(), cmd.pageIndex, minX, minY, {
         text,
         fontSize,
@@ -210,6 +214,7 @@ export function applyCommand(objects, cmd, ctx) {
         fontRef: s0.fontRef || null,
         origFontRef: s0.fontRef || null,
         fontName: s0.fontName || '',
+        color,
       })
       return {
         objects: [...objects, ...whiteouts, textObj],
@@ -222,6 +227,7 @@ export function applyCommand(objects, cmd, ctx) {
           originalBold: !!s0.fontBold,
           originalItalic: !!s0.fontItalic,
           originalFont: s0.fontCategory || 'sans',
+          originalColor: color,
         },
       }
     }

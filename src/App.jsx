@@ -336,7 +336,7 @@ export default function App() {
         t.bold === p.originalBold &&
         t.italic === p.originalItalic &&
         t.font === p.originalFont &&
-        t.color === '#111111' &&
+        t.color === (p.originalColor || '#111111') &&
         (!t.bgColor || t.bgColor === 'none') &&
         Math.round(t.fontSize) === Math.round(p.originalFontSize)
       return unchanged
