@@ -222,33 +222,57 @@ export default function PageView({
             />
           ))}
 
-        {/* Fillable AcroForm fields — type / tick in place; baked on export */}
+        {/* Fillable AcroForm fields — type / tick / pick in place; baked on export */}
         {!marqueeMode &&
-          page.formFields?.map((f, i) =>
-            f.type === 'checkbox' ? (
+          page.formFields?.map((f, i) => {
+            const pos = { left: f.x, top: f.y, width: f.w, height: f.h }
+            const stop = (e) => e.stopPropagation()
+            if (f.type === 'checkbox')
+              return (
+                <input
+                  key={`f${i}`} type="checkbox" className="form-check" style={pos}
+                  checked={!!fieldValues?.[f.name]}
+                  onPointerDown={stop}
+                  onChange={(e) => onFieldChange(f.name, e.target.checked)}
+                  title={f.name}
+                />
+              )
+            if (f.type === 'radio')
+              return (
+                <input
+                  key={`f${i}`} type="radio" className="form-check" style={pos}
+                  name={f.name} checked={fieldValues?.[f.name] === f.value}
+                  onPointerDown={stop}
+                  onChange={() => onFieldChange(f.name, f.value)}
+                  title={f.name}
+                />
+              )
+            if (f.type === 'select')
+              return (
+                <select
+                  key={`f${i}`} className="form-select" style={{ ...pos, fontSize: Math.min(15, f.h * 0.6) }}
+                  value={fieldValues?.[f.name] ?? ''}
+                  onPointerDown={stop}
+                  onChange={(e) => onFieldChange(f.name, e.target.value)}
+                  title={f.name}
+                >
+                  <option value="">—</option>
+                  {f.options?.map((o, k) => (
+                    <option key={k} value={o.value}>{o.display}</option>
+                  ))}
+                </select>
+              )
+            return (
               <input
-                key={`f${i}`}
-                type="checkbox"
-                className="form-check"
-                style={{ left: f.x, top: f.y, width: f.w, height: f.h }}
-                checked={!!fieldValues?.[f.name]}
-                onPointerDown={(e) => e.stopPropagation()}
-                onChange={(e) => onFieldChange(f.name, e.target.checked)}
-                title={f.name}
-              />
-            ) : (
-              <input
-                key={`f${i}`}
-                type="text"
-                className="form-input"
-                style={{ left: f.x, top: f.y, width: f.w, height: f.h, fontSize: Math.min(15, f.h * 0.6) }}
+                key={`f${i}`} type="text" className="form-input"
+                style={{ ...pos, fontSize: Math.min(15, f.h * 0.6) }}
                 value={fieldValues?.[f.name] ?? ''}
-                onPointerDown={(e) => e.stopPropagation()}
+                onPointerDown={stop}
                 onChange={(e) => onFieldChange(f.name, e.target.value)}
                 title={f.name}
               />
-            ),
-          )}
+            )
+          })}
 
         {/* Redaction boxes (solid black; content beneath is removed on export) */}
         {objects

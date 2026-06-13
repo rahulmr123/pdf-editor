@@ -26,12 +26,22 @@ export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {},
   let rasterSource = originalArrayBuffer
   if (fieldValues && Object.keys(fieldValues).length) {
     try {
+      const typeByName = {}
+      for (const p of pages) for (const f of p.formFields || []) typeByName[f.name] = f.type
       const form = src.getForm()
       for (const [name, val] of Object.entries(fieldValues)) {
         try {
-          if (typeof val === 'boolean') {
+          const t = typeByName[name]
+          if (t === 'checkbox' || typeof val === 'boolean') {
             const cb = form.getCheckBox(name)
             val ? cb.check() : cb.uncheck()
+          } else if (t === 'radio') {
+            if (val) form.getRadioGroup(name).select(String(val))
+          } else if (t === 'select') {
+            if (val != null && val !== '') {
+              try { form.getDropdown(name).select(String(val)) }
+              catch { form.getOptionList(name).select(String(val)) }
+            }
           } else if (val != null && val !== '') {
             form.getTextField(name).setText(String(val))
           }

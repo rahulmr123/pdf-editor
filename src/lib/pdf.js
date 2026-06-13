@@ -294,6 +294,14 @@ async function buildPageRecord(page, targetWidth, rotation, fonts) {
         formFields.push({ name: a.fieldName, type: 'text', ...box, value: a.fieldValue || '', multiline: !!a.multiLine })
       } else if (a.fieldType === 'Btn' && a.checkBox) {
         formFields.push({ name: a.fieldName, type: 'checkbox', ...box, checked: !!a.fieldValue && a.fieldValue !== 'Off' })
+      } else if (a.fieldType === 'Btn' && a.radioButton) {
+        // One widget per radio option; they share a fieldName (the group).
+        const on = String(a.buttonValue ?? a.exportValue ?? '')
+        formFields.push({ name: a.fieldName, type: 'radio', ...box, value: on, checked: a.fieldValue != null && String(a.fieldValue) === on })
+      } else if (a.fieldType === 'Ch') {
+        const options = (a.options || []).map((o) => ({ display: o.displayValue ?? o.exportValue, value: o.exportValue ?? o.displayValue }))
+        const v = Array.isArray(a.fieldValue) ? a.fieldValue[0] : a.fieldValue
+        formFields.push({ name: a.fieldName, type: 'select', ...box, value: v || '', options })
       }
     }
   } catch (e) {

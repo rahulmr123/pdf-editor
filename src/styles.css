@@ -403,6 +403,21 @@ body {
   accent-color: var(--accent);
   cursor: pointer;
 }
+.form-select {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--accent);
+  background: var(--accent-tint);
+  border-radius: 3px;
+  padding: 0 2px;
+  color: #111;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+}
+.form-select:focus { background: #fff; box-shadow: 0 0 0 2px var(--accent-tint); }
 
 /* Whiteout cover over original text */
 .whiteout {

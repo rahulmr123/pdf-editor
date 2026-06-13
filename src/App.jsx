@@ -136,7 +136,11 @@ export default function App() {
       // seed form values from any existing AcroForm field values
       const fv = {}
       for (const p of rendered)
-        for (const f of p.formFields || []) fv[f.name] = f.type === 'checkbox' ? f.checked : f.value
+        for (const f of p.formFields || []) {
+          if (f.type === 'checkbox') fv[f.name] = f.checked
+          else if (f.type === 'radio') { if (f.checked) fv[f.name] = f.value } // one option per group
+          else fv[f.name] = f.value
+        }
       setFieldValues(fv)
       setObjects([])
       setSelectedId(null)
