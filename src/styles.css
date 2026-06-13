@@ -306,7 +306,7 @@ body {
   font-size: 11px;
   line-height: 1;
   cursor: pointer;
-  opacity: 0;
+  opacity: .55;
   transition: opacity .12s, background .12s;
 }
 .thumb:hover .thumb-del { opacity: 1; }
@@ -324,7 +324,7 @@ body {
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
-  opacity: 0;
+  opacity: .55;
   transition: opacity .12s, background .12s;
 }
 .thumb:hover .thumb-rotate { opacity: 1; }
