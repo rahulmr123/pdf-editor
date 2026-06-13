@@ -469,6 +469,53 @@ body {
 }
 .hl-del:hover { background: var(--danger); color: #fff; }
 
+/* ---------- Redaction boxes (solid black; content removed on export) ---------- */
+.redactionbox {
+  position: absolute;
+  z-index: 3;
+  cursor: move;
+  background: #000;
+  border-radius: 1px;
+  touch-action: none;
+}
+.redactionbox.selected { box-shadow: 0 0 0 1.5px var(--accent); }
+.redactionbox .handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 1.5px solid var(--accent);
+  border-radius: 3px;
+}
+.redactionbox .handle.tl { top: -7px; left: -7px; cursor: nwse-resize; }
+.redactionbox .handle.tr { top: -7px; right: -7px; cursor: nesw-resize; }
+.redactionbox .handle.bl { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.redactionbox .handle.br { bottom: -7px; right: -7px; cursor: nwse-resize; }
+.rb-bar {
+  position: absolute;
+  top: -42px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 5px 7px 5px 10px;
+  box-shadow: 0 8px 24px rgba(60, 35, 20, .2);
+}
+.rb-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: #111;
+}
+.rb-del {
+  width: 24px; height: 24px; border: none; background: transparent;
+  color: var(--danger); font-size: 14px; cursor: pointer; border-radius: 6px;
+}
+.rb-del:hover { background: var(--danger); color: #fff; }
+
 /* ---------- Reading themes (view-only filters on the page raster) ---------- */
 .theme-select {
   border: 1px solid var(--line);

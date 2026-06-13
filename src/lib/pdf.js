@@ -142,6 +142,46 @@ function cssNameFromFont(raw) {
   return KNOWN_FONTS[key] || `"${base}"`
 }
 
+// True redaction: re-render the given pages to high-res rasters with the
+// redaction rectangles painted solid black, so the underlying text/images are
+// physically gone from the output (not merely covered). Returns
+// Map<pageIndex, { dataUrl }>. `rectsByPage` rectangles are in display pixels
+// (the editor's coordinate space); `infoByIndex` gives each page's display
+// width so we can scale them onto the high-res canvas.
+export async function flattenRedactedPages(arrayBuffer, rectsByPage, infoByIndex, dpi = 200) {
+  const doc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise
+  const out = new Map()
+  try {
+    for (const [pageIndex, rects] of rectsByPage) {
+      const page = await doc.getPage(pageIndex + 1)
+      const scale = dpi / 72 // points -> pixels at the chosen DPI
+      const viewport = page.getViewport({ scale })
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.floor(viewport.width)
+      canvas.height = Math.floor(viewport.height)
+      const ctx = canvas.getContext('2d')
+      await page.render({ canvasContext: ctx, viewport }).promise
+
+      // editor rects are in display px; map them onto this high-res canvas
+      const info = infoByIndex.get(pageIndex)
+      const ratio = info ? canvas.width / info.width : 1
+      ctx.fillStyle = '#000000'
+      for (const r of rects) {
+        ctx.fillRect(
+          Math.floor(r.x * ratio),
+          Math.floor(r.y * ratio),
+          Math.ceil(r.w * ratio),
+          Math.ceil(r.h * ratio),
+        )
+      }
+      out.set(pageIndex, { dataUrl: canvas.toDataURL('image/png') })
+    }
+  } finally {
+    doc.destroy?.()
+  }
+  return out
+}
+
 // Render every page of a PDF to a raster image we can show as a locked background.
 // We keep both the displayed pixel size (scaled) and the native PDF size (points)
 // so we can map editor coordinates back to PDF coordinates on export.

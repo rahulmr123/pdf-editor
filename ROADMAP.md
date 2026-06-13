@@ -63,8 +63,11 @@ Upload → render → drop/drag/edit text overlay → export baked PDF, fully cl
 ### 🔜 Phase 2 — Document toolkit (meet "PDF tool" expectations)
 *Goal: people stop reaching for other tools for common page jobs.*
 
-- [ ] Page ops: **reorder, delete, rotate, insert blank, merge, split**
-- [ ] **True redaction** (remove underlying content, not just cover it) — trust feature
+- [x] Page ops: **reorder, delete, insert blank** ✅ — *(rotate, merge, split still to do)*
+- [x] **True redaction** (remove underlying content, not just cover it) — trust feature ✅
+      *Redacted pages are flattened to a raster with the area blacked out, so the*
+      *original text/images are physically gone — verified unextractable. Tradeoff:*
+      *a redacted page loses its selectable text layer.*
 - [ ] **Form-field detection & fill** (AcroForms)
 - [ ] Compress PDF
 - [ ] Image ↔ PDF, PDF → image (all client-side)

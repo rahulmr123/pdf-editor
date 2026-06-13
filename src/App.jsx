@@ -31,6 +31,7 @@ export default function App() {
   const [viewTheme, setViewTheme] = useState('normal')
   const [selectMode, setSelectMode] = useState(false)
   const [cutMode, setCutMode] = useState(false) // drag a box to lift it out of the scan
+  const [redactMode, setRedactMode] = useState(false) // drag a box to truly remove content
   const [docFont, setDocFont] = useState('') // applied document-wide font
   const [activePage, setActivePage] = useState(0) // page nearest the viewport center
   const [pageOrder, setPageOrder] = useState([]) // displayed sequence of source page indices
@@ -273,6 +274,28 @@ export default function App() {
     setSelectedRegion(null)
     setImageMode(false)
     setCutMode(false)
+    setRedactMode(false)
+  }
+
+  // Redact mode: drag a box over anything (text or image) to truly remove it.
+  // The covered area's content is destroyed on export, not merely hidden.
+  function toggleRedactMode() {
+    setRedactMode((r) => !r)
+    setSelectedId(null)
+    setSelectedRegion(null)
+    setImageMode(false)
+    setSelectMode(false)
+    setCutMode(false)
+  }
+
+  // Marquee released in redact mode -> drop a redaction box over that rectangle.
+  function redactArea(pageIndex, rect) {
+    setRedactMode(false)
+    const obj = {
+      id: newId(), type: 'redaction', pageIndex,
+      x: rect.x, y: rect.y, w: rect.w, h: rect.h,
+    }
+    dispatch({ type: 'addObjects', objects: [obj], selectId: obj.id })
   }
 
   // Cut-out mode: drag a box around a signature, seal or stamp on a scanned
@@ -283,6 +306,7 @@ export default function App() {
     setSelectedRegion(null)
     setImageMode(false)
     setSelectMode(false)
+    setRedactMode(false)
   }
 
   // Marquee released in cut mode -> lift that rectangle of the page raster.
@@ -400,6 +424,7 @@ export default function App() {
     setSelectedId(null)
     setSelectMode(false)
     setCutMode(false)
+    setRedactMode(false)
   }
 
   // "Remove" a detected image = cover it with a whiteout (baked on export).
@@ -528,6 +553,7 @@ export default function App() {
     setSelectedRegion(null)
     setSelectMode(false)
     setCutMode(false)
+    setRedactMode(false)
     setDocFont('')
     setOcrBusy(false)
     setOcrRan(false)
@@ -575,6 +601,8 @@ export default function App() {
         onToggleSelectMode={toggleSelectMode}
         cutMode={cutMode}
         onToggleCutMode={toggleCutMode}
+        redactMode={redactMode}
+        onToggleRedactMode={toggleRedactMode}
         imageMode={imageMode}
         onToggleImageMode={toggleImageMode}
         viewTheme={viewTheme}
@@ -659,6 +687,8 @@ export default function App() {
                 onAreaSelect={areaSelect}
                 cutMode={cutMode}
                 onCutOut={cutOut}
+                redactMode={redactMode}
+                onRedact={redactArea}
                 onActivate={setActivePage}
               />
             )

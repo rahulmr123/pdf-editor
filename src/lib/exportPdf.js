@@ -1,6 +1,7 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import { getDocFontBytes } from './docfonts.js'
+import { flattenRedactedPages } from './pdf.js'
 
 function hexToRgb(hex) {
   const m = hex.replace('#', '')
@@ -25,13 +26,33 @@ export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {},
   pdfDoc.registerFontkit(fontkit)
   const sizeByIndex = new Map(pages.map((p) => [p.pageIndex, p]))
   const isBlank = (i) => !!sizeByIndex.get(i)?.blank
-  const realIndices = order.filter((i) => !isBlank(i))
-  const copied = await pdfDoc.copyPages(src, realIndices)
-  const copiedByIndex = new Map(realIndices.map((i, k) => [i, copied[k]]))
+
+  // True redaction: any kept page carrying a redaction is rebuilt from a
+  // high-res raster with the redacted areas blacked out, so the original page
+  // content (and its extractable text/images) never reaches the output.
+  const rectsByPage = new Map()
+  for (const o of objects) {
+    if (o.type !== 'redaction') continue
+    if (!order.includes(o.pageIndex) || isBlank(o.pageIndex)) continue
+    if (!rectsByPage.has(o.pageIndex)) rectsByPage.set(o.pageIndex, [])
+    rectsByPage.get(o.pageIndex).push({ x: o.x, y: o.y, w: o.w, h: o.h })
+  }
+  const flattened = rectsByPage.size
+    ? await flattenRedactedPages(originalArrayBuffer, rectsByPage, sizeByIndex)
+    : new Map()
+
+  // Copy only the pages we keep verbatim (not blank, not redacted/flattened).
+  const copyIndices = order.filter((i) => !isBlank(i) && !flattened.has(i))
+  const copied = await pdfDoc.copyPages(src, copyIndices)
+  const copiedByIndex = new Map(copyIndices.map((i, k) => [i, copied[k]]))
   for (const i of order) {
+    const info = sizeByIndex.get(i)
     if (isBlank(i)) {
-      const info = sizeByIndex.get(i)
       pdfDoc.addPage([info.pdfWidth, info.pdfHeight])
+    } else if (flattened.has(i)) {
+      const page = pdfDoc.addPage([info.pdfWidth, info.pdfHeight])
+      const png = await pdfDoc.embedPng(flattened.get(i).dataUrl)
+      page.drawImage(png, { x: 0, y: 0, width: info.pdfWidth, height: info.pdfHeight })
     } else {
       pdfDoc.addPage(copiedByIndex.get(i))
     }
@@ -110,6 +131,21 @@ export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {},
         width: w,
         height: h,
         color: rgb(wr / 255, wg / 255, wb / 255),
+      })
+      continue
+    }
+
+    // The page raster already has this area blacked out; draw a crisp vector
+    // box on top too so the edges stay sharp at any zoom.
+    if (obj.type === 'redaction') {
+      const w = obj.w / scale
+      const h = obj.h / scale
+      page.drawRectangle({
+        x: obj.x / scale,
+        y: pdfPageHeight - obj.y / scale - h,
+        width: w,
+        height: h,
+        color: rgb(0, 0, 0),
       })
       continue
     }

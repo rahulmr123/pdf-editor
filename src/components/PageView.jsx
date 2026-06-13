@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import TextBox from './TextBox.jsx'
 import ImageBox from './ImageBox.jsx'
 import HighlightBox from './HighlightBox.jsx'
+import RedactionBox from './RedactionBox.jsx'
 import TextPopup from './TextPopup.jsx'
 
 // One PDF page: the rendered raster as a locked background, a clickable text
@@ -30,9 +31,11 @@ export default function PageView({
   onAreaSelect,
   cutMode,
   onCutOut,
+  redactMode,
+  onRedact,
   onActivate,
 }) {
-  const marqueeMode = selectMode || cutMode
+  const marqueeMode = selectMode || cutMode || redactMode
   const regionOnThisPage =
     selectedRegion && selectedRegion.pageIndex === page.pageIndex ? selectedRegion : null
 
@@ -73,6 +76,7 @@ export default function PageView({
     if (m && m.w > 6 && m.h > 6) {
       if (selectMode) onAreaSelect(page.pageIndex, m)
       else if (cutMode) onCutOut(page.pageIndex, m)
+      else if (redactMode) onRedact(page.pageIndex, m)
     }
   }
   return (
@@ -204,6 +208,21 @@ export default function PageView({
           .filter((o) => o.type === 'image')
           .map((obj) => (
             <ImageBox
+              key={obj.id}
+              obj={obj}
+              selected={obj.id === selectedId}
+              onSelect={onSelect}
+              onChange={onChange}
+              onDelete={onDelete}
+              onGestureStart={onGestureStart}
+            />
+          ))}
+
+        {/* Redaction boxes (solid black; content beneath is removed on export) */}
+        {objects
+          .filter((o) => o.type === 'redaction')
+          .map((obj) => (
+            <RedactionBox
               key={obj.id}
               obj={obj}
               selected={obj.id === selectedId}

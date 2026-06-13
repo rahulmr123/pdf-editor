@@ -13,6 +13,8 @@ export default function Toolbar({
   onToggleSelectMode,
   cutMode,
   onToggleCutMode,
+  redactMode,
+  onToggleRedactMode,
   imageMode,
   onToggleImageMode,
   viewTheme,
@@ -68,6 +70,13 @@ export default function Toolbar({
             title="Drag a box around a signature, seal or stamp to lift it into a movable object"
           >
             ✂ Cut out
+          </button>
+          <button
+            className={`tbtn ${redactMode ? 'active' : ''}`}
+            onClick={onToggleRedactMode}
+            title="Drag a box over text or images to permanently remove the content on export"
+          >
+            ▮ Redact
           </button>
           <button
             className={`tbtn ${imageMode ? 'active' : ''}`}
@@ -127,13 +136,15 @@ export default function Toolbar({
         </div>
       </div>
 
-      {(selectMode || cutMode || imageMode) && (
+      {(selectMode || cutMode || redactMode || imageMode) && (
         <div className="mode-bar">
           {selectMode
             ? '✦ Select mode — drag a box around the lines you want (e.g. an address) to edit them together'
             : cutMode
               ? '✂ Cut-out mode — drag a box around a signature, seal or stamp to lift it into a movable object'
-              : '✦ Showing all images — click one to remove or replace it'}
+              : redactMode
+                ? '▮ Redact mode — drag a box over text or images; the content beneath is permanently removed on export'
+                : '✦ Showing all images — click one to remove or replace it'}
         </div>
       )}
     </>
