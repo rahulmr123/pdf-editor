@@ -102,7 +102,9 @@ Upload → render → drop/drag/edit text overlay → export baked PDF, fully cl
 ### 🔜 Phase 2 — Document toolkit (meet "PDF tool" expectations)
 *Goal: people stop reaching for other tools for common page jobs.*
 
-- [x] Page ops: **reorder, delete, insert blank** ✅ — *(rotate, merge, split still to do)*
+- [x] Page ops: **reorder, delete, insert blank, rotate** ✅ — *(merge, split still to do)*
+      *Rotating a page bakes the rotation into a raster on export (its text layer*
+      *is flattened), like redaction — lossless rotation is a follow-up.*
 - [x] **True redaction** (remove underlying content, not just cover it) — trust feature ✅
       *Redacted pages are flattened to a raster with the area blacked out, so the*
       *original text/images are physically gone — verified unextractable. Tradeoff:*

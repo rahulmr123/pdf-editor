@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { renderPdf } from './lib/pdf.js'
+import { renderPdf, renderSinglePage } from './lib/pdf.js'
 import { exportPdf } from './lib/exportPdf.js'
 import { applyCommand } from './lib/commands.js'
 import { ocrPages } from './lib/ocr.js'
@@ -247,6 +247,37 @@ export default function App() {
     const next = pageOrder.filter((s) => s !== srcIndex)
     setPageOrder(next)
     if (srcIndex === activePage) setActivePage(next[0] ?? 0)
+  }
+
+  // Rotate a page 90° clockwise. We re-render it from the PDF in the new
+  // orientation (so the raster, text boxes and editing all stay correct) and
+  // swing any overlay objects already on it into the rotated coordinate space.
+  async function rotatePage(srcIndex) {
+    const cur = pageById.get(srcIndex)
+    if (!cur || !buffer) return
+    const oldH = cur.height
+    const next = ((cur.rotation || 0) + 90) % 360
+    try {
+      const { record, fonts } = await renderSinglePage(buffer, srcIndex, next)
+      fontsRef.current = { ...fontsRef.current, ...fonts }
+      loadFontFaces(fonts)
+      setPages((prev) => prev.map((p) => (p.pageIndex === srcIndex ? { pageIndex: srcIndex, ...record } : p)))
+      // +90° CW on a (W×oldH) page: (x,y,w,h) -> (oldH - y - h, x, h, w)
+      setObjects((prev) =>
+        prev.map((o) => {
+          if (o.pageIndex !== srcIndex) return o
+          const w = o.w ?? o.fontSize ?? 0
+          const h = o.h ?? o.fontSize ?? 0
+          const patch = { x: oldH - o.y - h, y: o.x }
+          if (o.w != null) { patch.w = h; patch.h = w }
+          return { ...o, ...patch }
+        }),
+      )
+      setSelectedId(null)
+    } catch (e) {
+      console.error('rotate failed', e)
+      setError('Could not rotate that page.')
+    }
   }
 
   function addText(pageIndex = activePage, x = 60, y = 60) {
@@ -655,6 +686,7 @@ export default function App() {
             onMovePage={movePage}
             onDeletePage={deletePage}
             onAddPage={addBlankPage}
+            onRotatePage={rotatePage}
           />
         )}
         <div className="canvas-area" data-theme={viewTheme} ref={canvasRef} onScroll={onCanvasScroll}>

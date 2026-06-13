@@ -140,8 +140,10 @@ export default function PageView({
         )}
 
         {/* Clickable existing-text layer (rendered after images so text wins overlap).
-            Skip runs already covered by a whiteout so old text can't be re-grabbed. */}
-        {!marqueeMode &&
+            Skip runs already covered by a whiteout so old text can't be re-grabbed.
+            Skipped on rotated pages, where pdf.js gives text boxes in the rotated
+            (non-horizontal) frame and click-to-edit geometry isn't reliable. */}
+        {!marqueeMode && !page.rotation &&
           page.textItems?.map((item, i) =>
             isCovered(item) ? null : (
           <span

@@ -148,14 +148,19 @@ function cssNameFromFont(raw) {
 // Map<pageIndex, { dataUrl }>. `rectsByPage` rectangles are in display pixels
 // (the editor's coordinate space); `infoByIndex` gives each page's display
 // width so we can scale them onto the high-res canvas.
-export async function flattenRedactedPages(arrayBuffer, rectsByPage, infoByIndex, dpi = 200) {
+// `specByPage` maps pageIndex -> { rects, rotation }. Each listed page is
+// re-rendered at high res in its current rotation with the redaction rectangles
+// blacked out, then returned as a PNG to embed in place of the original page.
+export async function flattenRedactedPages(arrayBuffer, specByPage, infoByIndex, dpi = 200) {
   const doc = await pdfjsLib.getDocument({ data: arrayBuffer.slice(0) }).promise
   const out = new Map()
   try {
-    for (const [pageIndex, rects] of rectsByPage) {
+    for (const [pageIndex, spec] of specByPage) {
+      const rects = spec.rects || []
+      const rotation = spec.rotation || 0
       const page = await doc.getPage(pageIndex + 1)
       const scale = dpi / 72 // points -> pixels at the chosen DPI
-      const viewport = page.getViewport({ scale })
+      const viewport = page.getViewport({ scale, rotation })
       const canvas = document.createElement('canvas')
       canvas.width = Math.floor(viewport.width)
       canvas.height = Math.floor(viewport.height)
@@ -182,6 +187,112 @@ export async function flattenRedactedPages(arrayBuffer, rectsByPage, infoByIndex
   return out
 }
 
+// Build the display + edit record for one page at the given rotation
+// (0/90/180/270, clockwise). `fonts` is mutated with any embedded font programs
+// found, so edits can reuse the exact typeface. Returns everything except the
+// page index, which the caller assigns.
+async function buildPageRecord(page, targetWidth, rotation, fonts) {
+  // With a rotation the viewport's width/height swap for 90/270, so the page
+  // stays `targetWidth` wide on screen in its rotated orientation.
+  const base = page.getViewport({ scale: 1, rotation })
+  const scale = targetWidth / base.width
+  const viewport = page.getViewport({ scale, rotation })
+
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.floor(viewport.width)
+  canvas.height = Math.floor(viewport.height)
+  const ctx = canvas.getContext('2d')
+  await page.render({ canvasContext: ctx, viewport }).promise
+
+  // Pull out every text run with its on-screen box, so the user can click
+  // existing PDF text and edit it in place (white-out + editable overlay).
+  const textContent = await page.getTextContent()
+
+  // Resolve each font's real name (PostScript name) from commonObjs — populated
+  // after render — and cache the family/style classification per font id.
+  const fontInfoCache = {}
+  const getFontInfo = (fontName) => {
+    if (fontName in fontInfoCache) return fontInfoCache[fontName]
+    let name = ''
+    let fontRef = null
+    try {
+      const f = page.commonObjs.has(fontName) ? page.commonObjs.get(fontName) : null
+      if (f) {
+        name = f.name || f.fallbackName || ''
+        // capture the actual embedded font program so edits can reuse it
+        if (f.data && f.data.length && f.loadedName) {
+          fontRef = f.loadedName
+          if (!fonts[fontRef]) fonts[fontRef] = { data: f.data, mimetype: f.mimetype || 'font/opentype' }
+        }
+      }
+    } catch {}
+    if (!name) name = textContent.styles?.[fontName]?.fontFamily || ''
+    const info = {
+      fontCategory: classifyFamily(name),
+      ...classifyStyle(name),
+      fontRef,
+      fontName: cssNameFromFont(name),
+    }
+    fontInfoCache[fontName] = info
+    return info
+  }
+
+  // One read of the rendered page so we can sample each run's ink colour
+  // without a getImageData call per run.
+  const pageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+
+  const textItems = []
+  for (const item of textContent.items) {
+    if (!item.str || !item.str.trim()) continue
+    const tx = pdfjsLib.Util.transform(viewport.transform, item.transform)
+    const fontSize = Math.hypot(tx[2], tx[3])
+    const info = getFontInfo(item.fontName)
+    const x = tx[4]
+    const y = tx[5] - fontSize
+    const width = item.width * scale
+
+    textItems.push({
+      str: item.str,
+      x, // displayed px, left
+      y, // displayed px, top (tx[5] is the baseline)
+      width,
+      height: fontSize,
+      fontSize,
+      fontCategory: info.fontCategory,
+      fontBold: info.bold,
+      fontItalic: info.italic,
+      fontRef: info.fontRef,
+      fontName: info.fontName,
+      color: sampleInkColor(pageData, canvas.width, canvas.height, { x, y, width, height: fontSize }),
+    })
+  }
+
+  let imageRegions = []
+  try {
+    imageRegions = await detectImages(page, viewport)
+    // Drop near-full-page images (e.g. a scanned page is one giant image):
+    // it isn't a meaningful "remove/replace this picture" target and would
+    // tint the whole page on hover. It stays as the locked background.
+    imageRegions = imageRegions.filter(
+      (r) => !(r.width >= viewport.width * 0.92 && r.height >= viewport.height * 0.92),
+    )
+  } catch (e) {
+    console.error('image detection failed', e)
+  }
+
+  return {
+    scale, // displayed px per PDF point
+    width: canvas.width, // displayed px
+    height: canvas.height,
+    pdfWidth: base.width, // points (rotated dims for 90/270)
+    pdfHeight: base.height,
+    rotation,
+    dataUrl: canvas.toDataURL('image/png'),
+    textItems,
+    imageRegions,
+  }
+}
+
 // Render every page of a PDF to a raster image we can show as a locked background.
 // We keep both the displayed pixel size (scaled) and the native PDF size (points)
 // so we can map editor coordinates back to PDF coordinates on export.
@@ -196,104 +307,28 @@ export async function renderPdf(arrayBuffer, targetWidth = 820) {
 
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i)
-    const base = page.getViewport({ scale: 1 })
-    const scale = targetWidth / base.width
-    const viewport = page.getViewport({ scale })
-
-    const canvas = document.createElement('canvas')
-    canvas.width = Math.floor(viewport.width)
-    canvas.height = Math.floor(viewport.height)
-    const ctx = canvas.getContext('2d')
-    await page.render({ canvasContext: ctx, viewport }).promise
-
-    // Pull out every text run with its on-screen box, so the user can click
-    // existing PDF text and edit it in place (white-out + editable overlay).
-    const textContent = await page.getTextContent()
-
-    // Resolve each font's real name (PostScript name) from commonObjs — populated
-    // after render — and cache the family/style classification per font id.
-    const fontInfoCache = {}
-    const getFontInfo = (fontName) => {
-      if (fontName in fontInfoCache) return fontInfoCache[fontName]
-      let name = ''
-      let fontRef = null
-      try {
-        const f = page.commonObjs.has(fontName) ? page.commonObjs.get(fontName) : null
-        if (f) {
-          name = f.name || f.fallbackName || ''
-          // capture the actual embedded font program so edits can reuse it
-          if (f.data && f.data.length && f.loadedName) {
-            fontRef = f.loadedName
-            if (!fonts[fontRef]) fonts[fontRef] = { data: f.data, mimetype: f.mimetype || 'font/opentype' }
-          }
-        }
-      } catch {}
-      if (!name) name = textContent.styles?.[fontName]?.fontFamily || ''
-      const info = {
-        fontCategory: classifyFamily(name),
-        ...classifyStyle(name),
-        fontRef,
-        fontName: cssNameFromFont(name),
-      }
-      fontInfoCache[fontName] = info
-      return info
-    }
-
-    // One read of the rendered page so we can sample each run's ink colour
-    // without a getImageData call per run.
-    const pageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data
-
-    const textItems = []
-    for (const item of textContent.items) {
-      if (!item.str || !item.str.trim()) continue
-      const tx = pdfjsLib.Util.transform(viewport.transform, item.transform)
-      const fontSize = Math.hypot(tx[2], tx[3])
-      const info = getFontInfo(item.fontName)
-      const x = tx[4]
-      const y = tx[5] - fontSize
-      const width = item.width * scale
-
-      textItems.push({
-        str: item.str,
-        x, // displayed px, left
-        y, // displayed px, top (tx[5] is the baseline)
-        width,
-        height: fontSize,
-        fontSize,
-        fontCategory: info.fontCategory,
-        fontBold: info.bold,
-        fontItalic: info.italic,
-        fontRef: info.fontRef,
-        fontName: info.fontName,
-        color: sampleInkColor(pageData, canvas.width, canvas.height, { x, y, width, height: fontSize }),
-      })
-    }
-
-    let imageRegions = []
-    try {
-      imageRegions = await detectImages(page, viewport)
-      // Drop near-full-page images (e.g. a scanned page is one giant image):
-      // it isn't a meaningful "remove/replace this picture" target and would
-      // tint the whole page on hover. It stays as the locked background.
-      imageRegions = imageRegions.filter(
-        (r) => !(r.width >= viewport.width * 0.92 && r.height >= viewport.height * 0.92),
-      )
-    } catch (e) {
-      console.error('image detection failed', e)
-    }
-
-    pages.push({
-      pageIndex: i - 1,
-      scale, // displayed px per PDF point
-      width: canvas.width, // displayed px
-      height: canvas.height,
-      pdfWidth: base.width, // points
-      pdfHeight: base.height,
-      dataUrl: canvas.toDataURL('image/png'),
-      textItems,
-      imageRegions,
-    })
+    const record = await buildPageRecord(page, targetWidth, 0, fonts)
+    pages.push({ pageIndex: i - 1, ...record })
   }
 
   return { pages, fonts }
+}
+
+// Re-render one page at a new rotation (for the Pages panel's rotate control).
+// Returns { record, fonts } — the page record (sans index) and any embedded
+// fonts found, to merge into the app's font set.
+export async function renderSinglePage(arrayBuffer, pageIndex, rotation, targetWidth = 820) {
+  const doc = await pdfjsLib.getDocument({
+    data: arrayBuffer.slice(0),
+    fontExtraProperties: true,
+  }).promise
+  const fonts = {}
+  try {
+    const page = await doc.getPage(pageIndex + 1)
+    const norm = ((rotation % 360) + 360) % 360
+    const record = await buildPageRecord(page, targetWidth, norm, fonts)
+    return { record, fonts }
+  } finally {
+    doc.destroy?.()
+  }
 }

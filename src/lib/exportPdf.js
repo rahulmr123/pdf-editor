@@ -27,18 +27,24 @@ export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {},
   const sizeByIndex = new Map(pages.map((p) => [p.pageIndex, p]))
   const isBlank = (i) => !!sizeByIndex.get(i)?.blank
 
-  // True redaction: any kept page carrying a redaction is rebuilt from a
-  // high-res raster with the redacted areas blacked out, so the original page
-  // content (and its extractable text/images) never reaches the output.
-  const rectsByPage = new Map()
+  // Pages rebuilt from a high-res raster: those with a redaction (to physically
+  // remove content) or a rotation (baked into the image). Collect the redaction
+  // rectangles and the page's rotation for each.
+  const flattenSpec = new Map() // pageIndex -> { rects, rotation }
+  const ensureSpec = (i) => {
+    if (!flattenSpec.has(i)) flattenSpec.set(i, { rects: [], rotation: sizeByIndex.get(i)?.rotation || 0 })
+    return flattenSpec.get(i)
+  }
   for (const o of objects) {
     if (o.type !== 'redaction') continue
     if (!order.includes(o.pageIndex) || isBlank(o.pageIndex)) continue
-    if (!rectsByPage.has(o.pageIndex)) rectsByPage.set(o.pageIndex, [])
-    rectsByPage.get(o.pageIndex).push({ x: o.x, y: o.y, w: o.w, h: o.h })
+    ensureSpec(o.pageIndex).rects.push({ x: o.x, y: o.y, w: o.w, h: o.h })
   }
-  const flattened = rectsByPage.size
-    ? await flattenRedactedPages(originalArrayBuffer, rectsByPage, sizeByIndex)
+  for (const i of order) {
+    if (!isBlank(i) && (sizeByIndex.get(i)?.rotation || 0) !== 0) ensureSpec(i)
+  }
+  const flattened = flattenSpec.size
+    ? await flattenRedactedPages(originalArrayBuffer, flattenSpec, sizeByIndex)
     : new Map()
 
   // Copy only the pages we keep verbatim (not blank, not redacted/flattened).

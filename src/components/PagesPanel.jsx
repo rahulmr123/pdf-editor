@@ -11,6 +11,7 @@ export default function PagesPanel({
   onMovePage,
   onDeletePage,
   onAddPage,
+  onRotatePage,
 }) {
   const [dragFrom, setDragFrom] = useState(null)
   const [dragOver, setDragOver] = useState(null)
@@ -49,6 +50,16 @@ export default function PagesPanel({
             >
               <div className="thumb-img-wrap">
                 <img className="thumb-img" src={page.dataUrl} alt={`Page ${pos + 1}`} draggable={false} />
+                <button
+                  className="thumb-rotate"
+                  title="Rotate this page 90°"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onRotatePage(srcIndex)
+                  }}
+                >
+                  ⟳
+                </button>
                 {pageOrder.length > 1 && (
                   <button
                     className="thumb-del"
