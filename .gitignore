@@ -3,3 +3,9 @@ dist
 .DS_Store
 *.local
 .vite
+
+# Tesseract OCR language data (downloaded at runtime, large binary)
+eng.traineddata
+
+# Local test/verification harness (uses puppeteer-core installed --no-save)
+scripts/
