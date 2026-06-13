@@ -5,6 +5,12 @@ const POPUP_H = 202
 
 const hasFill = (o) => o.bgColor && o.bgColor !== 'none'
 
+// An embedded font program is a single weight+style, so it can't be made bold
+// or italic on demand. When the user toggles B/I on such a run, switch it to the
+// matching standard family (which has real bold/italic faces, on screen and on
+// export). `origFontRef` is kept so the "Original" dropdown can restore it.
+const styleBreak = (o) => (o.fontRef ? { fontRef: null } : null)
+
 // Floating editor for the selected text object: content + B/I + size + colors.
 export default function TextPopup({ obj, pageWidth, pageHeight, onChange, onDelete, onEditStart }) {
   const taRef = useRef(null)
@@ -37,7 +43,7 @@ export default function TextPopup({ obj, pageWidth, pageHeight, onChange, onDele
         <button
           className={`tp-btn ${obj.bold ? 'on' : ''}`}
           style={{ fontWeight: 800 }}
-          onClick={() => onChange(obj.id, { bold: !obj.bold })}
+          onClick={() => onChange(obj.id, { bold: !obj.bold, ...styleBreak(obj) })}
           title="Bold"
         >
           B
@@ -45,7 +51,7 @@ export default function TextPopup({ obj, pageWidth, pageHeight, onChange, onDele
         <button
           className={`tp-btn ${obj.italic ? 'on' : ''}`}
           style={{ fontStyle: 'italic' }}
-          onClick={() => onChange(obj.id, { italic: !obj.italic })}
+          onClick={() => onChange(obj.id, { italic: !obj.italic, ...styleBreak(obj) })}
           title="Italic"
         >
           I
