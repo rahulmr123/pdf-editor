@@ -280,6 +280,26 @@ async function buildPageRecord(page, targetWidth, rotation, fonts) {
     console.error('image detection failed', e)
   }
 
+  // Interactive AcroForm fields (text inputs + checkboxes), so a fillable PDF
+  // can be filled in place. Field rects are mapped to display px via the same
+  // viewport transform as text, so they line up with the rendered widgets.
+  const formFields = []
+  try {
+    for (const a of await page.getAnnotations()) {
+      if (a.subtype !== 'Widget' || !a.fieldName || a.readOnly) continue
+      const [x1, y1] = pdfjsLib.Util.applyTransform([a.rect[0], a.rect[1]], viewport.transform)
+      const [x2, y2] = pdfjsLib.Util.applyTransform([a.rect[2], a.rect[3]], viewport.transform)
+      const box = { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) }
+      if (a.fieldType === 'Tx') {
+        formFields.push({ name: a.fieldName, type: 'text', ...box, value: a.fieldValue || '', multiline: !!a.multiLine })
+      } else if (a.fieldType === 'Btn' && a.checkBox) {
+        formFields.push({ name: a.fieldName, type: 'checkbox', ...box, checked: !!a.fieldValue && a.fieldValue !== 'Off' })
+      }
+    }
+  } catch (e) {
+    console.error('form field read failed', e)
+  }
+
   return {
     scale, // displayed px per PDF point
     width: canvas.width, // displayed px
@@ -290,6 +310,7 @@ async function buildPageRecord(page, targetWidth, rotation, fonts) {
     dataUrl: canvas.toDataURL('image/png'),
     textItems,
     imageRegions,
+    formFields,
   }
 }
 

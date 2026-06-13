@@ -15,9 +15,34 @@ function hexToRgb(hex) {
 // `pageOrder` is the displayed sequence of original page indices (after the
 // user reorders / deletes pages). When given, the output is rebuilt in that
 // order with deleted pages dropped; objects on dropped pages are skipped.
-export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {}, pageOrder = null) {
+export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {}, pageOrder = null, fieldValues = {}) {
   const src = await PDFDocument.load(originalArrayBuffer.slice(0))
   const order = pageOrder && pageOrder.length ? pageOrder : pages.map((p) => p.pageIndex)
+
+  // Fill the PDF's own AcroForm fields, then flatten so the values become page
+  // content (copyPages doesn't carry interactive fields across documents, and a
+  // filled form is what we want to ship). `rasterSource` is the filled bytes, so
+  // any pages we later rasterise (redaction / rotation) show the filled values.
+  let rasterSource = originalArrayBuffer
+  if (fieldValues && Object.keys(fieldValues).length) {
+    try {
+      const form = src.getForm()
+      for (const [name, val] of Object.entries(fieldValues)) {
+        try {
+          if (typeof val === 'boolean') {
+            const cb = form.getCheckBox(name)
+            val ? cb.check() : cb.uncheck()
+          } else if (val != null && val !== '') {
+            form.getTextField(name).setText(String(val))
+          }
+        } catch {} // field missing or wrong type — skip
+      }
+      form.flatten()
+      rasterSource = await src.save()
+    } catch (e) {
+      console.error('form fill failed', e)
+    }
+  }
 
   // Build a fresh document containing only the kept pages, in the chosen order.
   // Blank pages (inserted in the editor) have no source page, so we create them
@@ -44,7 +69,7 @@ export async function exportPdf(originalArrayBuffer, pages, objects, fonts = {},
     if (!isBlank(i) && (sizeByIndex.get(i)?.rotation || 0) !== 0) ensureSpec(i)
   }
   const flattened = flattenSpec.size
-    ? await flattenRedactedPages(originalArrayBuffer, flattenSpec, sizeByIndex)
+    ? await flattenRedactedPages(rasterSource, flattenSpec, sizeByIndex)
     : new Map()
 
   // Copy only the pages we keep verbatim (not blank, not redacted/flattened).

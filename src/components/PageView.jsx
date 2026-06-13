@@ -33,6 +33,8 @@ export default function PageView({
   onCutOut,
   redactMode,
   onRedact,
+  fieldValues,
+  onFieldChange,
   onActivate,
 }) {
   const marqueeMode = selectMode || cutMode || redactMode
@@ -219,6 +221,34 @@ export default function PageView({
               onGestureStart={onGestureStart}
             />
           ))}
+
+        {/* Fillable AcroForm fields — type / tick in place; baked on export */}
+        {!marqueeMode &&
+          page.formFields?.map((f, i) =>
+            f.type === 'checkbox' ? (
+              <input
+                key={`f${i}`}
+                type="checkbox"
+                className="form-check"
+                style={{ left: f.x, top: f.y, width: f.w, height: f.h }}
+                checked={!!fieldValues?.[f.name]}
+                onPointerDown={(e) => e.stopPropagation()}
+                onChange={(e) => onFieldChange(f.name, e.target.checked)}
+                title={f.name}
+              />
+            ) : (
+              <input
+                key={`f${i}`}
+                type="text"
+                className="form-input"
+                style={{ left: f.x, top: f.y, width: f.w, height: f.h, fontSize: Math.min(15, f.h * 0.6) }}
+                value={fieldValues?.[f.name] ?? ''}
+                onPointerDown={(e) => e.stopPropagation()}
+                onChange={(e) => onFieldChange(f.name, e.target.value)}
+                title={f.name}
+              />
+            ),
+          )}
 
         {/* Redaction boxes (solid black; content beneath is removed on export) */}
         {objects

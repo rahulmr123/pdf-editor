@@ -39,6 +39,7 @@ export default function App() {
   const [ocrBusy, setOcrBusy] = useState(false)
   const [ocrRan, setOcrRan] = useState(false)
   const [ocrProgress, setOcrProgress] = useState(null) // { page, total, ratio }
+  const [fieldValues, setFieldValues] = useState({}) // AcroForm field name -> value
   const canvasRef = useRef(null)
   const replaceTarget = useRef(null)
   const replaceInputRef = useRef(null)
@@ -132,6 +133,11 @@ export default function App() {
       setFileName(file.name)
       setPages(rendered)
       setPageOrder(rendered.map((p) => p.pageIndex))
+      // seed form values from any existing AcroForm field values
+      const fv = {}
+      for (const p of rendered)
+        for (const f of p.formFields || []) fv[f.name] = f.type === 'checkbox' ? f.checked : f.value
+      setFieldValues(fv)
       setObjects([])
       setSelectedId(null)
       setActivePage(rendered[0]?.pageIndex ?? 0)
@@ -283,6 +289,8 @@ export default function App() {
   function addText(pageIndex = activePage, x = 60, y = 60) {
     dispatch({ type: 'addText', pageIndex, x, y })
   }
+
+  const setFieldValue = (name, value) => setFieldValues((prev) => ({ ...prev, [name]: value }))
 
   // Click existing PDF text -> cover it and drop a matching editable box on top.
   function editExisting(pageIndex, item) {
@@ -557,7 +565,7 @@ export default function App() {
   async function handleExport() {
     setBusy(true)
     try {
-      const bytes = await exportPdf(buffer, pages, objects, fontsRef.current, pageOrder)
+      const bytes = await exportPdf(buffer, pages, objects, fontsRef.current, pageOrder, fieldValues)
       const blob = new Blob([bytes], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -589,6 +597,7 @@ export default function App() {
     setOcrBusy(false)
     setOcrRan(false)
     setOcrProgress(null)
+    setFieldValues({})
     past.current = []
     future.current = []
   }
@@ -721,6 +730,8 @@ export default function App() {
                 onCutOut={cutOut}
                 redactMode={redactMode}
                 onRedact={redactArea}
+                fieldValues={fieldValues}
+                onFieldChange={setFieldValue}
                 onActivate={setActivePage}
               />
             )

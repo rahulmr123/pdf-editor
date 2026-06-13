@@ -109,7 +109,8 @@ Upload → render → drop/drag/edit text overlay → export baked PDF, fully cl
       *Redacted pages are flattened to a raster with the area blacked out, so the*
       *original text/images are physically gone — verified unextractable. Tradeoff:*
       *a redacted page loses its selectable text layer.*
-- [ ] **Form-field detection & fill** (AcroForms)
+- [x] **Form-field detection & fill** (AcroForms) ✅ — *text fields + checkboxes;*
+      *filled values are flattened into the page on export (radios/dropdowns TBD)*
 - [ ] Compress PDF
 - [ ] Image ↔ PDF, PDF → image (all client-side)
 

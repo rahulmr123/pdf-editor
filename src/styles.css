@@ -380,6 +380,30 @@ body {
 }
 .text-hit:hover { background: var(--accent-tint); outline: 1px solid var(--accent); }
 
+/* Fillable AcroForm fields — subtle tint so users see what's fillable */
+.form-input,
+.form-check {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  box-sizing: border-box;
+}
+.form-input {
+  border: 1px solid var(--accent);
+  background: var(--accent-tint);
+  border-radius: 3px;
+  padding: 0 4px;
+  color: #111;
+  font-family: inherit;
+  line-height: 1;
+  outline: none;
+}
+.form-input:focus { background: #fff; box-shadow: 0 0 0 2px var(--accent-tint); }
+.form-check {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 /* Whiteout cover over original text */
 .whiteout {
   position: absolute;
