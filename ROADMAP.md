@@ -29,6 +29,45 @@
 
 ---
 
+## Distribution — how users find us
+
+> **The hard truth:** a 10x-smoother editor nobody discovers loses to a clunky
+> one that ranks #1. Smallpdf / iLovePDF / Adobe own the SEO for every
+> "pdf [verb]" query. We need an **acquisition wedge as sharp as our
+> product wedge** — this is a bigger near-term risk than any missing feature.
+
+**Acquisition wedge:** win the *privacy-intent* searcher first —
+"edit pdf without uploading", "sign pdf offline", "private / local pdf editor".
+Lower competition, and the searcher is already pre-sold on our one true
+differentiator.
+
+### Channels (ranked by leverage)
+1. **Programmatic SEO** — one fast, genuinely useful landing page per
+   job-to-be-done ("Fill a PDF form", "Sign a PDF", "Edit text in a PDF",
+   "Redact a PDF"). Each page *is* the tool, usable above the fold; privacy is
+   the hook in the title/description.
+2. **The product is the funnel** — no signup to edit + export, time-to-value in
+   seconds. Every successful export is a potential share moment.
+3. **Subtle attribution** on the share path (not a watermark on the file) — a
+   "made privately with pdfly" link we control; opt-out for Pro.
+4. **Trust / comparison content** — "is it safe to edit PDFs online?",
+   "X vs pdfly" — rides incumbent brand searches with the privacy angle.
+5. **Communities** — r/freelance, r/smallbusiness, legal/HR forums,
+   IndieHackers. Lead with privacy, not feature lists.
+6. **Integrations (later)** — Drive / Dropbox "Open with", embeddable widget.
+
+### Funnel & instrumentation
+- Land → **edit** → **export** → (return / share). The north-star lives at
+  *export*.
+- **Privacy-safe analytics only:** anonymous client-side events (file opened,
+  object added, exported) — **never** file names or contents. Measuring the
+  north-star must not break the positioning.
+
+**Success criteria:** at least one repeatable, ~$0-CAC organic channel producing
+a predictable weekly flow of first-time successful edits.
+
+---
+
 ## Phases — Now / Next / Later
 
 ### ✅ Phase 0 — Proof of concept *(DONE)*
@@ -77,18 +116,38 @@ Upload → render → drop/drag/edit text overlay → export baked PDF, fully cl
 ---
 
 ### 🌤️ Phase 3 — Accounts & monetization
-*Goal: turn usage into revenue without breaking the free, private core.*
+*Goal: turn usage into revenue without **taxing** the free, private core.*
+
+> **Principle:** the free editor stays *fully usable* and **un-watermarked** —
+> that IS the wedge and the trust story. We charge for things that genuinely
+> need a server or serve a different, higher-WTP buyer — never by crippling free.
 
 - [ ] Auth + **cloud save / version history** (opt-in; local stays default)
-- [ ] **Pro tier** (the money):
+- [ ] **Pro tier** (the money), aimed at the *business / legal / HR* buyer:
   - [ ] **E-signature with audit trail / certificate** ← primary revenue driver
-  - [ ] OCR for scanned PDFs
-  - [ ] Batch processing, large files
-  - [ ] No watermark on exports
-- [ ] Light server only where unavoidable (OCR, audit trail, conversions)
+        (the one feature that legitimately needs a server)
+  - [ ] **Request signatures** from others + status tracking
+  - [ ] Team workspace, shared templates, branding
+  - [ ] Batch processing, very large files, priority
+- [ ] Light server only where unavoidable (audit trail, signature requests)
 
-**Model:** Free = full client-side editor. Pro = subscription for the above.
-**Success criteria:** first paying users; >2% free→Pro conversion.
+> **Corrections to earlier thinking:** OCR already ships **free** and
+> client-side (a trust/UX feature, not a paywall), and we do **not** watermark
+> free exports — both would fight the wedge.
+
+**Two ICPs, one product:**
+- *Free ICP* — freelancers, students, anyone with a sensitive doc. Won on
+  smoothness + privacy. May never pay; they're our **distribution**.
+- *Paying ICP* — businesses / legal / HR who need **signatures with an audit
+  trail**. A different segment with real budget.
+
+**Pricing model:** PDF editing is often *episodic* (sign a lease, done for
+months), so a pure monthly sub may mismatch usage. Test a **Pro subscription**
+(signatures / teams) *alongside* **pay-per-signed-document / credits** for
+occasional users, and see which the paying ICP prefers.
+
+**Success criteria:** first paying users; a repeatable channel→revenue path;
+>2% of *active* users reach a Pro-gated action.
 
 ---
 
